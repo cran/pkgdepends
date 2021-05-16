@@ -1,6 +1,6 @@
 Package: pkgdepends
 Title: Package Dependency Resolution and Downloads
-Version: 0.1.0
+Version: 0.1.1
 Author: Gábor Csárdi
 Maintainer: Gábor Csárdi <csardi.gabor@gmail.com>
 Description: Find recursive dependencies of 'R' packages from various
@@ -13,7 +13,6 @@ Description: Find recursive dependencies of 'R' packages from various
     installations in parallel. 'pkgdepends' is the workhorse of the
     'pak' package.
 License: MIT + file LICENSE
-LazyData: true
 URL: https://github.com/r-lib/pkgdepends#readme
 BugReports: https://github.com/r-lib/pkgdepends/issues
 RoxygenNote: 7.1.1.9001
@@ -30,6 +29,6 @@ Config/Needs/website: pkgdown
 Config/Needs/coverage: covr
 Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2021-03-15 10:11:35 UTC; gaborcsardi
+Packaged: 2021-05-14 14:31:13 UTC; gaborcsardi
 Repository: CRAN
-Date/Publication: 2021-03-16 09:20:02 UTC
+Date/Publication: 2021-05-16 22:40:02 UTC
