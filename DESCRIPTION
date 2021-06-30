@@ -1,6 +1,6 @@
 Package: pkgdepends
 Title: Package Dependency Resolution and Downloads
-Version: 0.1.1
+Version: 0.1.2
 Author: Gábor Csárdi
 Maintainer: Gábor Csárdi <csardi.gabor@gmail.com>
 Description: Find recursive dependencies of 'R' packages from various
@@ -29,6 +29,6 @@ Config/Needs/website: pkgdown
 Config/Needs/coverage: covr
 Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2021-05-14 14:31:13 UTC; gaborcsardi
+Packaged: 2021-06-30 11:15:12 UTC; gaborcsardi
 Repository: CRAN
-Date/Publication: 2021-05-16 22:40:02 UTC
+Date/Publication: 2021-06-30 11:50:02 UTC

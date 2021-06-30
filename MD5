@@ -1,4 +1,4 @@
-33655ec23939b0c7179c7c60c9c34688 *DESCRIPTION
+873657210dc62b659b3b6a09ab03768f *DESCRIPTION
 861402e081b774b5ea5f27d861c6ba94 *LICENSE
 dba1730d33384d0f1aaf428c8af92293 *NAMESPACE
 3fb320ee39cea46397231e8daedf5f11 *R/00assertthat.R
@@ -32,7 +32,7 @@ c400d583e57dac3211fb6259133bd5ca *R/print.R
 28d2011cdbb6338275baa368b756a82c *R/progress-bars.R
 fa7903f3d683b396b20da8d27b5a0423 *R/resolution-df.R
 b011c626796129e03c629a9ec61401f6 *R/resolution-progress-bar.R
-d59f9c3ebd651456eb56aace5b8d4dc9 *R/resolution.R
+1b1afffcd2f06db19db09c7b5d921732 *R/resolution.R
 6dd76b1e3d7ef84704a3196945e6b0bb *R/rstudio-detect.R
 fab6ce2b33cd9f6545839ab58104a393 *R/rx.R
 3c279a607cb27664efdda1f6cad46711 *R/satisfies.R
@@ -42,7 +42,7 @@ fab6ce2b33cd9f6545839ab58104a393 *R/rx.R
 1bbb6c42561cc05de8eef4ec731ffd09 *R/type-cran.R
 296a99f9c03576e12deba68724fcf097 *R/type-deps.R
 e28af198a604cb29213a37c1397f94fd *R/type-github.R
-4fe690d951a96c4d457300bdfec53cf2 *R/type-installed.R
+07489c7868c463aea1cea0ee743b0849 *R/type-installed.R
 5d1502cdbdfa30dc4af1bc488e8ebdf9 *R/type-local.R
 f032d277b87c94d810b9f845b296db9b *R/type-standard.R
 bc22b7009e5a99cd20b446fe5554e2f0 *R/type-url.R
@@ -71,7 +71,7 @@ aab71af5e47a71785e448a89af8d6fcc *man/lib_status.Rd
 e1d0733c329b12d432c1fbbba31b57cf *man/pkg_config.Rd
 2d08ece78db747cf6130ef5e4f967f76 *man/pkg_dep_types.Rd
 153421ebb929fe0c0a267a04a97cc6e9 *man/pkg_deps.Rd
-1ddd473742e8d31a7ffabe1a4ff6ed5d *man/pkg_download_proposal.Rd
+815eddf52f850914a09faa90a5576d0b *man/pkg_download_proposal.Rd
 6b5f98a71355894bdcb4716ea6bda485 *man/pkg_downloads.Rd
 d22f089bd56d5195b279de18e6440919 *man/pkg_installation_plan.Rd
 25be07c3bce26b52c9bd088302b0bb3d *man/pkg_installation_proposal.Rd
@@ -80,7 +80,7 @@ d22f089bd56d5195b279de18e6440919 *man/pkg_installation_plan.Rd
 8117b3b0aa1b561d52f1e0bf9fd13698 *man/pkg_resolution.Rd
 78887cea398ae42cfed4c8114cc4d8bd *man/pkg_rx.Rd
 cdb608778177c88cbca2ad06432c09f2 *man/pkg_solution.Rd
-afbd1ca3d404c6e1f228a9ea7b2e9b50 *man/pkgdepends-package.Rd
+dd6bc578d5dc230d55692595ed468f1a *man/pkgdepends-package.Rd
 46d2af4bb279a9651d430d46dc2798da *tests/testthat.R
 4f93be42d9e74c3b1906629b75f25616 *tests/testthat/_fixtures/01ca05e7e503765b871858b0a893ae85.rds
 16788cecd9db8bdfbbc4bb38d553930f *tests/testthat/_fixtures/0468c02ed8cc959d7380ea172a55e336.rds
