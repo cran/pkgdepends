@@ -165,48 +165,17 @@ omit_cols <- function(df, omit) {
   }
 }
 
-get_all_package_dirs <- function(platforms, rversions) {
-  minors <- unique(get_minor_r_version(rversions))
-  res <- lapply(platforms, function(pl) {
-    if (pl == "source") {
-      cbind("source", "*", "src/contrib")
-
-    } else if (pl == "windows") {
-      cbind("windows", minors, paste0("bin/windows/contrib/", minors))
-
-    } else if (pl == "macos") {
-      res1 <- lapply(minors, function(v) {
-        if (package_version(v) <= "2.15") {
-          cbind("macos", v, paste0("bin/macosx/leopard/contrib/", v))
-        } else if (package_version(v) == "3.0") {
-          cbind("macos", v, paste0("bin/macosx/contrib/", v))
-        } else if (package_version(v) <= "3.2") {
-          cbind("macos", v, paste0(c("bin/macosx/contrib/",
-                                     "bin/macosx/mavericks/contrib/"), v))
-        } else if (package_version(v) == "3.3") {
-          cbind("macos", v, paste0("bin/macosx/mavericks/contrib/", v))
-        } else {
-          cbind("macos", v, paste0("bin/macosx/el-capitan/contrib/", v))
-        }
-      })
-      do.call(rbind, res1)
-    }
-  })
-
-  mat <- do.call(rbind, res)
-  colnames(mat) <- c("platform", "rversion", "contriburl")
-  res <- as_tibble(mat)
-  res$prefix <- paste0(
-    "/",
-    ifelse(res$rversion == "*", "*", paste0("R-", res$rversion)),
-    "/", res$platform, "/"
+same_sha <- function(s1, s2) {
+  assert_that(
+    is.character(s1), length(s1) == 1,
+    is.character(s2), length(s2) == 1
+  )
+  if (is.na(s1) || is.na(s2)) return(FALSE)
+  assert_that(
+    is_string(s1),
+    is_string(s2)
   )
 
-  res
-}
-
-same_sha <- function(s1, s2) {
-  assert_that(is_string(s1), is_string(s2))
   len <- min(nchar(s1), nchar(s2))
   substr(s1, 1, len) == substr(s2, 1, len)
 }
@@ -262,9 +231,13 @@ add_attr <- function(x, attr, value) {
   x
 }
 
-detect_download_cache_dir <- function() {
-  tempfile()
-}
+detect_download_cache_dir <- local({
+  dir <- NULL
+  function() {
+    if (is.null(dir)) dir <<- tempfile()
+    dir
+  }
+})
 
 rbind_expand <- function(..., .list = list()) {
   data <- c(list(...), .list)
@@ -515,4 +488,15 @@ safe_md5sum <- function(path) {
       structure(tools::md5sum(tmp), names = path)
     }
   )
+}
+
+# TODO: rewrite this in C in ps
+
+get_euid <- function() {
+  euid <- tryCatch(
+    as.integer(processx::run("id", "-u")$stdout),
+    error = function(e) NA_integer_
+  )
+  if (length(euid) != 1 || is.na(euid)) euid <- NA_integer_
+  euid
 }

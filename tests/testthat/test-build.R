@@ -7,6 +7,7 @@ test_that("build_package", {
 })
 
 test_that("vignettes can be turned on and off", {
+  skip_on_cran()
   skip_if_offline()
   local_cli_config()
   dir.create(tmplib <- tempfile())
@@ -25,10 +26,13 @@ test_that("vignettes can be turned on and off", {
   expect_false("doc" %in% dir(file.path(tmplib, "pkgdependstest")))
   rimraf(tmplib, "pkgdependstest")
 
+  if (Sys.which("pandoc") == "") skip("Needs pandoc")
+
   inst2 <- new_pkg_installation_proposal(
     paste0("local::", pkgdir, "?nocache"),
     config = list(`build-vignettes` = TRUE, library = tmplib)
   )
+
   expect_snapshot({
     inst2$solve()
     inst2$download()

@@ -63,7 +63,7 @@ download_remote_github <- function(resolution, target, target_tree,
   ##    R package, and add that to the cache as well.
 
   package <- resolution$package
-  sha <- resolution$extra[[1]]$remotesha
+  sha <- resolution$extra[[1]][["remotesha"]] %||% NA_character_
   need_vignettes <- which == "resolution"
   nocache <- is_true_param(resolution$params[[1]], "nocache")
   source <- is_true_param(resolution$params[[1]], "source")
@@ -156,8 +156,8 @@ satisfy_remote_github <- function(resolution, candidate,
     if (want_reinst) {
       return(structure(FALSE, reason = "Re-install requested"))
     }
-    sha1 <- tryCatch(candidate$extra[[1]]$remotesha, error = function(e) "")
-    sha2 <- resolution$extra[[1]]$remotesha
+    sha1 <- candidate$extra[[1]][["remotesha"]] %||% NA_character_
+    sha2 <- resolution$extra[[1]][["remotesha"]] %||% NA_character_
     ok <- is_string(sha1) && is_string(sha2) && same_sha(sha1, sha2)
     if (!ok) {
       return(structure(FALSE, reason = "Installed package sha mismatch"))
@@ -173,14 +173,20 @@ satisfy_remote_github <- function(resolution, candidate,
   }
 
   ## 3. other refs are also good, as long as they have the same sha
-  sha1 <- tryCatch(candidate$extra[[1]]$remotesha, error = function(e) "")
-  sha2 <- resolution$extra[[1]]$remotesha
+  sha1 <- candidate$extra[[1]][["remotesha"]] %||% NA_character_
+  sha2 <- resolution$extra[[1]][["remotesha"]] %||% NA_character_
   ok <- is_string(sha1) && is_string(sha2) && same_sha(sha1, sha2)
   if (!ok) {
     return(structure(FALSE, reason = "Candidate package sha mismatch"))
   } else {
     return(TRUE)
   }
+}
+
+installedok_remote_github <- function(installed, solution, config, ...) {
+  identical(installed$package, solution$package) &&
+    identical(installed$version, solution$version) &&
+    identical(installed[["remotesha"]], solution$metadata[[1]][["RemoteSha"]])
 }
 
 ## ----------------------------------------------------------------------
@@ -401,7 +407,8 @@ type_github_make_resolution <- function(data) {
     unknown_deps = unknown,
     extra = list(list(remotesha = sha)),
     metadata = meta,
-    params = data$remote$params
+    params = data$remote$params,
+    sysreqs = data$desc$get_field("SystemRequirements", "")
   )
 }
 

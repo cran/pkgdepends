@@ -99,6 +99,13 @@ satisfy_remote_url <- function(resolution, candidate, config, ...) {
   structure(FALSE, reason = "Repo type mismatch")
 }
 
+installedok_remote_url <- function(installed, solution, config, ...) {
+  identical(installed$package, solution$package) &&
+    identical(installed$version, solution$version) &&
+    identical(installed[["remotetype"]], "url") &&
+    identical(installed[["remoteetag"]], solution$metadata[[1]][["RemoteEtag"]])
+}
+
 # -----------------------------------------------------------------------
 # Internal functions
 
@@ -114,9 +121,9 @@ type_url_rx <- function() {
 type_url_tempdir <- function(remote, config) {
   base <- basename(remote$url)
   filename <- paste0(substr(remote$hash, 1, 7), "-", basename(remote$url))
-  archive <- file.path(config$cache_dir, filename)
-  extract <- file.path(config$cache_dir, paste0(filename, "-t"))
-  ok <- file.path(config$cache_dir, paste0(filename, "-ok"))
+  archive <- file.path(config$get("cache_dir"), filename)
+  extract <- file.path(config$get("cache_dir"), paste0(filename, "-t"))
+  ok <- file.path(config$get("cache_dir"), paste0(filename, "-ok"))
   list(
     archive = archive,
     extract = extract,

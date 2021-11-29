@@ -1,6 +1,6 @@
 
 test_that("resolving with a list", {
-  conf <- pkgplan_default_config()
+  conf <- current_config()
   cache <- list(package = pkgcache::package_cache$new(), metadata = NULL)
 
   do <- function() {
@@ -29,7 +29,7 @@ test_that("resolving with a list", {
 })
 
 test_that("resolving with a tibble", {
-  conf <- pkgplan_default_config()
+  conf <- current_config()
   cache <- list(package = pkgcache::package_cache$new(), metadata = NULL)
   do <- function() {
     res <- new_resolution(config = conf, cache = cache)
@@ -64,7 +64,7 @@ test_that("resolving with a tibble", {
 })
 
 test_that("unknown deps are pushed in the queue", {
-  conf <- pkgplan_default_config()
+  conf <- current_config()
   cache <- list(package = pkgcache::package_cache$new(), metadata = NULL)
   do <- function() {
     res <- new_resolution(config = conf, cache = cache)
@@ -92,7 +92,7 @@ test_that("unknown deps are pushed in the queue", {
 })
 
 test_that("unknown deps, tibble", {
-  conf <- pkgplan_default_config()
+  conf <- current_config()
   cache <- list(package = pkgcache::package_cache$new(), metadata = NULL)
   do <- function() {
     res <- new_resolution(config = conf, cache = cache)
@@ -127,7 +127,7 @@ test_that("unknown deps, tibble", {
 })
 
 test_that("error", {
-  conf <- pkgplan_default_config()
+  conf <- current_config()
   cache <- list(package = pkgcache::package_cache$new(), metadata = NULL)
   do <- function() {
     res <- new_resolution(config = conf, cache = cache)
@@ -155,7 +155,7 @@ test_that("error", {
 })
 
 test_that("installed refs are also resolved", {
-  conf <- pkgplan_default_config()
+  conf <- current_config()
   mkdirp(lib <- tempfile())
   lib <- normalizePath(lib)
   on.exit(unlink(lib, recursive = TRUE), add = TRUE)
@@ -172,7 +172,8 @@ test_that("installed refs are also resolved", {
       priority = NA_character_, md5sum = NA_character_,
       platform = "source", rversion = "*", sources = list(NULL, NULL),
       built = NA_character_, deps = list(NULL, NULL),
-      repotype = NA_character_)
+      repotype = NA_character_,
+      sysreqs = NA_character_)
   )
 
   do <- function() {
@@ -202,7 +203,7 @@ test_that("installed refs are also resolved", {
 
 test_that("explicit cran", {
   skip_on_cran()
-  conf <- pkgplan_default_config()
+  conf <- current_config()
   cache <- list(package = pkgcache::package_cache$new(),
                 metadata = pkgcache::get_cranlike_metadata_cache())
   do <- function(refs) {
@@ -222,7 +223,11 @@ test_that("explicit cran", {
   expect_true(all(grepl(".", res$version, fixed = TRUE)))
   expect_true(all(res$platform == "source" | ! res$needscompilation))
   expect_true(all(is.na(res$built) | res$platform != "source"))
-  expect_true(all(res$platform %in% default_platforms()))
+  good_platforms <- c(
+    default_platforms(),
+    if (is_windows()) "i386+x86_64-w64-mingw32"
+  )
+  expect_true(all(res$platform %in% good_platforms))
   expect_true(all(res$rversion %in%
                   c(get_minor_r_version(current_r_version()), "*")))
   expect_true(is_character(res$repodir))
@@ -230,7 +235,7 @@ test_that("explicit cran", {
   expect_true(all(vlapply(res$deps, is_tibble)))
   expect_true("imports" %in% unlist(lapply(res$deps, "[[", "type")))
   expect_true("suggests" %in% unlist(lapply(res$deps, "[[", "type")))
-  expect_true(all(res$platform %in% c("source", "macos") |
+  expect_true(all(grepl("source|darwin", res$platform) |
                   viapply(res$sources, length) == 1))
   expect_true(all(vlapply(res$remote, inherits, what = "remote_ref")))
   expect_true(all(vlapply(res$error, identical, list())))
@@ -239,7 +244,7 @@ test_that("explicit cran", {
 
 test_that("standard", {
   skip_on_cran()
-  conf <- pkgplan_default_config()
+  conf <- current_config()
   cache <- list(
     package = pkgcache::package_cache$new(),
     metadata = pkgcache::get_cranlike_metadata_cache())
@@ -260,7 +265,11 @@ test_that("standard", {
   expect_true(all(grepl(".", res$version, fixed = TRUE)))
   expect_true(all(res$platform == "source" | ! res$needscompilation))
   expect_true(all(is.na(res$built) | res$platform != "source"))
-  expect_true(all(res$platform %in% default_platforms()))
+  good_platforms <- c(
+    default_platforms(),
+    if (is_windows()) "i386+x86_64-w64-mingw32"
+  )
+  expect_true(all(res$platform %in% good_platforms))
   expect_true(all(res$rversion %in%
                   c(get_minor_r_version(current_r_version()), "*")))
   expect_true(is_character(res$repodir))
@@ -268,7 +277,7 @@ test_that("standard", {
   expect_true(all(vlapply(res$deps, is_tibble)))
   expect_true("imports" %in% unlist(lapply(res$deps, "[[", "type")))
   expect_true("suggests" %in% unlist(lapply(res$deps, "[[", "type")))
-  expect_true(all(res$platform %in% c("source", "macos") |
+  expect_true(all(grepl("source|darwin", res$platform) |
                   viapply(res$sources, length) == 1))
   expect_true(all(vlapply(res$remote, inherits, what = "remote_ref")))
   expect_true(all(vlapply(res$error, identical, list())))
@@ -276,12 +285,12 @@ test_that("standard", {
 })
 
 test_that("dependencies are honoured", {
-  conf <- pkgplan_default_config()
+  conf <- current_config()
   cache <- list(
     package = pkgcache::package_cache$new(),
     metadata = pkgcache::get_cranlike_metadata_cache())
   do <- function(refs, deps) {
-    conf$dependencies <- deps
+    conf$set("dependencies", deps)
     res <- new_resolution(config = conf, cache = cache)
     res$push(.list = parse_pkg_refs(refs), direct = TRUE)
     res$when_complete()
@@ -316,7 +325,7 @@ test_that("dependencies are honoured", {
 })
 
 test_that("error if cannot find package", {
-  conf <- pkgplan_default_config()
+  conf <- current_config()
   cache <- list(
     package = pkgcache::package_cache$new(),
     metadata = pkgcache::get_cranlike_metadata_cache())
@@ -335,8 +344,8 @@ test_that("error if cannot find package", {
 })
 
 test_that("dependency types", {
-  conf <- pkgplan_default_config()
-  conf$dependencies <- TRUE
+  conf <- current_config()
+  conf$set("dependencies", TRUE)
   cache <- list(
     package = pkgcache::package_cache$new(),
     metadata = pkgcache::get_cranlike_metadata_cache())

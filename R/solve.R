@@ -102,7 +102,7 @@ solve_dummy_obj <- 1000000000
 
 pkgplan_solve <- function(self, private, policy) {
   "!DEBUG starting to solve `length(private$resolution$packages)` packages"
-  if (is.null(private$config$library)) {
+  if (is.null(private$config$get("library"))) {
     stop("No package library specified, see 'library' in new()")
   }
   if (is.null(private$resolution)) self$resolve()
@@ -110,9 +110,9 @@ pkgplan_solve <- function(self, private, policy) {
 
   metadata <- list(solution_start = Sys.time())
   pkgs <- self$get_resolution()
-  rversion <- private$config$`r-versions`
+  rversion <- private$config$get("r_versions")
 
-  prb <- private$create_lp_problem(pkgs, policy, rversion)
+  prb <- private$create_lp_problem(pkgs, policy)
   sol <- private$solve_lp_problem(prb)
 
   if (sol$status != 0) {
@@ -140,6 +140,16 @@ pkgplan_solve <- function(self, private, policy) {
     res$failures <- describe_solution_error(pkgs, res)
   }
 
+  if (private$config$get("sysreqs")) {
+    res$sysreqs <- tryCatch(
+      list(
+        result = sysreqs_resolve(res$data$sysreqs, config = private$config),
+        error = NULL
+      ),
+      error = function(err) list(result = NULL, error = err)
+    )
+  }
+
   private$solution$result <- res
   self$get_solution()
 }
@@ -155,11 +165,15 @@ pkgplan_stop_for_solve_error <- function(self, private) {
     msg <- paste(format(sol$failures), collapse = "\n")
     stop("Cannot install packages:\n", msg, call. = FALSE)
   }
+
+  # sysreqs error?
+  if (!is.null(sol$sysreqs$error)) {
+    stop("sysreqs lookup error: ", conditionMessage(sol$sysreqs$error))
+  }
 }
 
-pkgplan__create_lp_problem <- function(self, private, pkgs, policy,
-                                       rversion) {
-  pkgplan_i_create_lp_problem(pkgs, policy, rversion)
+pkgplan__create_lp_problem <- function(self, private, pkgs, policy) {
+  pkgplan_i_create_lp_problem(pkgs, private$config, policy)
 }
 
 ## Add a condition, for a subset of variables, with op and rhs
@@ -180,7 +194,7 @@ pkgplan_i_lp_add_cond <- function(
 ## * 1:num are candidates
 ## * (num+1):(num+num_direct_pkgs) are the relax variables for direct refs
 
-pkgplan_i_create_lp_problem <- function(pkgs, policy, rversion) {
+pkgplan_i_create_lp_problem <- function(pkgs, config, policy) {
   "!DEBUG creating LP problem"
 
   ## TODO: we could already rule out (standard) source packages if binary
@@ -189,9 +203,12 @@ pkgplan_i_create_lp_problem <- function(pkgs, policy, rversion) {
   ## TODO: we could already rule out (standard) source and binary packages
   ## if an installed ref with the same version is present
 
-  lp <- pkgplan_i_lp_init(pkgs, policy)
+  rversion <- config$get("r_versions")
+
+  lp <- pkgplan_i_lp_init(pkgs, config, policy)
   lp <- pkgplan_i_lp_objectives(lp)
   lp <- pkgplan_i_lp_failures(lp)
+  lp <- pkgplan_i_lp_platforms(lp)
   lp <- pkgplan_i_lp_no_multiples(lp)
   lp <- pkgplan_i_lp_rversion(lp, rversion)
   lp <- pkgplan_i_lp_satisfy_direct(lp)
@@ -203,7 +220,7 @@ pkgplan_i_create_lp_problem <- function(pkgs, policy, rversion) {
   lp
 }
 
-pkgplan_i_lp_init <- function(pkgs, policy) {
+pkgplan_i_lp_init <- function(pkgs, config, policy) {
   num_candidates <- nrow(pkgs)
   packages <- unique(pkgs$package)
   direct_packages <- unique(pkgs$package[pkgs$direct])
@@ -211,6 +228,8 @@ pkgplan_i_lp_init <- function(pkgs, policy) {
   num_direct <- length(direct_packages)
 
   structure(list(
+    ## Configuration
+    config = config,
     ## Number of package candidates
     num_candidates = num_candidates,
     ## Number of directly specified ones
@@ -233,7 +252,6 @@ pkgplan_i_lp_init <- function(pkgs, policy) {
 }
 
 ## Coefficients of the objective function, this is very easy
-## TODO: rule out incompatible platforms
 ## TODO: use rversion as well, for installed and binary packages
 
 pkgplan_i_lp_objectives <- function(lp) {
@@ -282,6 +300,25 @@ pkgplan_i_lp_failures <- function(lp) {
     lp$ruled_out <<- c(lp$ruled_out, wh)
   }
   lapply(seq_len(lp$num_candidates), failedconds)
+
+  lp
+}
+
+pkgplan_i_lp_platforms <- function(lp) {
+  ## check if platform is good
+  badplatform <- function(wh) {
+    ok <- platform_is_ok(
+      lp$pkgs$platform[wh],
+      lp$config$get("platforms"),
+      lp$config$get("windows_archs")
+    )
+    if (!ok) {
+      lp <<- pkgplan_i_lp_add_cond(lp, wh, op = "==", rhs = 0,
+                                   type = "matching-platform")
+      lp$ruled_out <<- c(lp$ruled_out, wh)
+    }
+  }
+  lapply(seq_len(lp$num_candidates), badplatform)
 
   lp
 }
@@ -386,10 +423,10 @@ pkgplan_i_lp_prefer_installed <- function(lp) {
   inst <- which(
     pkgs$type == "installed" & ! seq_along(pkgs$type) %in% lp$ruled_out
   )
-  for (i in inst) {    
+  for (i in inst) {
     ## If not a CRAN or BioC package, skip it
     repotype <- pkgs$extra[[i]]$repotype
-    if (is.null(repotype) || ! repotype %in% c("cran", "bioc")) next    
+    if (is.null(repotype) || ! repotype %in% c("cran", "bioc")) next
 
     ## Look for others with cran/bioc/standard type and same name & ver
     package <- pkgs$package[i]
@@ -519,6 +556,11 @@ format_cond <- function(x, cond) {
     ref <- x$pkgs$ref[cond$vars]
     glue("`{ref}` resolution failed")
 
+  } else if (cond$type == "matching-platform") {
+    ref <- x$pkgs$ref[cond$vars]
+    plat <- x$pkgs$platform[cond$vars]
+    glue("Platform `{plat}` does not match for `{ref}`")
+
   } else if (cond$type == "bad-rversion") {
     ref <- x$pkgs$ref[cond$vars]
     glue("`{ref}` needs a newer R version")
@@ -634,7 +676,7 @@ highlight_version <- function(old, new) {
 
 #' Highlight package list
 #'
-#' @param sol Sultion data, data frame, with at least these columns:
+#' @param sol Solution data, data frame, with at least these columns:
 #' `type`, `package`, `old_version`, `version`, `lib_status`,
 #' `cache_status`, `platform`, `needscompilation`. Just what
 #' `$get_solution()$data` returns, basically.
@@ -716,24 +758,31 @@ pkgplan_install_plan <- function(self, private, downloads) {
   sol <- if (downloads) {
     self$get_solution_download()
   } else {
+    self$stop_for_solve_error()
     self$get_solution()$data
   }
   if (inherits(sol, "pkgplan_solve_error")) return(sol)
 
-  hard_deps <- pkg_dep_types_hard()
-  deps <- lapply(
-    seq_len(nrow(sol)),
-    function(i) {
-      x <- sol$deps[[i]]
-      if (sol$platform[[i]] != "source") {
-        x <- x[tolower(x$type) != "linkingto", ]
-      }
-      x$package[tolower(x$type) %in% tolower(hard_deps)]
-    })
-  deps <- lapply(deps, setdiff, y = c("R", base_packages()))
+  # If it is coming from an install plan, then there is no 'deps' column,
+  # but the dependencies column is already set.
+  has_deps <- "deps" %in% names(sol)
+  if (has_deps) {
+    hard_deps <- pkg_dep_types_hard()
+    deps <- lapply(
+      seq_len(nrow(sol)),
+      function(i) {
+        x <- sol$deps[[i]]
+        if (sol$platform[[i]] != "source") {
+          x <- x[tolower(x$type) != "linkingto", ]
+        }
+        x$package[tolower(x$type) %in% tolower(hard_deps)]
+      })
+    deps <- lapply(deps, setdiff, y = c("R", base_packages()))
+  }
+
   installed <- ifelse(
     sol$type == "installed",
-    file.path(private$config$library, sol$package),
+    file.path(private$config$get("library"), sol$package),
     NA_character_)
 
   res <- self$get_resolution()
@@ -741,17 +790,28 @@ pkgplan_install_plan <- function(self, private, downloads) {
   direct <- sol$direct |
     (sol$type == "installed" & sol$package %in% direct_packages)
 
-  had <- paste("Had", current_r_platform())
-  binary = sol$platform != "source" | sol$download_status == had
+  binary <- sol$platform != "source"
+  if (downloads) {
+    had <- paste("Had", current_r_platform())
+    binary <- binary | sol$download_status == had
+  }
   vignettes <- ! binary & ! sol$type %in% c("cran", "bioc", "standard") &
-    private$config$`build-vignettes`
+    private$config$get("build-vignettes")
 
-  sol$library <- private$config$library
+  sol$library <- private$config$get("library")
   sol$binary <- binary
   sol$direct <- direct
-  sol$dependencies <- I(deps)
+  if (has_deps) sol$dependencies <- I(deps)
   sol$installed <- installed
   sol$vignettes <- vignettes
+
+  # If we are on X64 Windows and we prefer x64, then only compile
+  # for x64
+  nomulti <- sol$platform %in% c("*", "source") &
+    sol$type != "installed" &
+    "x86_64-w64-mingw32" %in% private$config$get("platforms") &
+    private$config$get("windows-archs") == "prefer-x64"
+  sol$install_args <- ifelse(nomulti, "--no-multiarch", "")
 
   if (downloads) {
     tree <- file.exists(sol$fulltarget_tree)
@@ -772,7 +832,8 @@ pkgplan_export_install_plan <- function(self, private, plan_file, version) {
     "ref", "package", "version", "type", "direct", "binary",
     "dependencies", "vignettes", "needscompilation", "metadata",
     "sources", "target", "platform", "rversion", "built",
-    "directpkg", "license", "sha256", "filesize", "dep_types", "params"
+    "directpkg", "license", "sha256", "filesize", "dep_types",
+    "params", "install_args", "repotype"
   ))
 
   packages <- pkgs[, cols]
@@ -780,7 +841,24 @@ pkgplan_export_install_plan <- function(self, private, plan_file, version) {
     packages$params,
     function(x) lapply(as.list(x), unbox)
   )
-  plan <- list(lockfile_version = unbox(version), packages = packages)
+
+  plan <- list(
+    lockfile_version = unbox(version),
+    os = unbox(utils::sessionInfo()$running),
+    r_version = unbox(R.Version()$version.string),
+    platform = unbox(R.Version()$platform),
+    packages = packages
+  )
+
+  sysreqs <- self$get_solution()$sysreqs$result
+  if (!is.null(sysreqs)) {
+    sysreqs$os <- unbox(sysreqs$os)
+    sysreqs$os_release <- unbox(sysreqs$os_release)
+    sysreqs$url <- unbox(sysreqs$url)
+    sysreqs$total <- NULL
+    plan$sysreqs <- sysreqs
+  }
+
   txt <- as_json_lite_plan(plan)
   writeLines(txt, plan_file)
 }
@@ -869,7 +947,7 @@ describe_solution_error <- function(pkgs, solution) {
   ## 7. otherwise YES
 
   FAILS <- c("failed-res", "satisfy-direct", "conflict", "dep-failed",
-             "bad-rversion")
+             "bad-rversion", "matching-platform")
 
   state <- rep("maybe-good", num)
   note <- replicate(num, NULL)
@@ -900,6 +978,14 @@ describe_solution_error <- function(pkgs, solution) {
     needs <- cnd[[w]]$note
     state[sv] <- "bad-rversion"
     note[[sv]] <- c(note[[sv]], glue("Needs R {needs}"))
+  }
+
+  ## Candidates with platform mismatch
+  for (w in which(typ == "matching-platform")) {
+    sv <- var[[w]]
+    if (state[sv] != "maybe-good") next
+    state[sv] <- "matching-platform"
+    note[[sv]] <- c(note[[sv]], glue("Platform mismatch"))
   }
 
   ## Candidates that conflict with a direct package

@@ -1,7 +1,8 @@
 
 test_that("binary preferred over source", {
   pkgs <- read_fixture("resolution-simple.rds")
-  lp <- pkgplan_i_create_lp_problem(pkgs, policy = "lazy", rversion = getRversion())
+  config <- current_config()$set("platforms", c("macos", "source"))
+  lp <- pkgplan_i_create_lp_problem(pkgs, config = config, policy = "lazy")
   sol <- pkgplan_i_solve_lp_problem(lp)
   expect_equal(sol$status, 0)
   expect_identical(as.logical(sol$solution)[1:2], c(TRUE, FALSE))
@@ -9,7 +10,8 @@ test_that("binary preferred over source", {
 
 test_that("installed preferred over download", {
   pkgs <- read_fixture("resolution-installed.rds")
-  lp <- pkgplan_i_create_lp_problem(pkgs, policy = "lazy", rversion = getRversion())
+  config <- current_config()$set("platforms", c("macos", "source"))
+  lp <- pkgplan_i_create_lp_problem(pkgs, policy = "lazy", config = config)
   sol <- pkgplan_i_solve_lp_problem(lp)
   expect_equal(sol$status, 0)
   expect_identical(as.logical(sol$solution[1:3]), pkgs$type == "installed")
@@ -24,7 +26,8 @@ test_that("dependency versions are honored", {
       deps = list(make_fake_deps(Imports = "pkgA (>= 2.0.0)")))
   )
 
-  lp <- pkgplan_i_create_lp_problem(pkgs, policy = "lazy", rversion = getRversion())
+  config <- current_config()$set("platforms", c("macos", "source"))
+  lp <- pkgplan_i_create_lp_problem(pkgs, config = config, policy = "lazy")
   sol <- pkgplan_i_solve_lp_problem(lp)
   expect_equal(sol$status, 0)
   expect_identical(as.logical(sol$solution[1:3]), c(FALSE, TRUE, TRUE))
@@ -32,7 +35,8 @@ test_that("dependency versions are honored", {
 
 test_that("conflict: different versions required for package", {
   pkgs <- read_fixture("resolution-gh-vs-cran.rds")
-  lp <- pkgplan_i_create_lp_problem(pkgs, policy = "lazy", rversion = getRversion())
+  config <- current_config()$set("platforms", c("macos", "source"))
+  lp <- pkgplan_i_create_lp_problem(pkgs, config = config, policy = "lazy")
   sol <- pkgplan_i_solve_lp_problem(lp)
   expect_equal(sol$status, 0)
   expect_true(sol$objval >= solve_dummy_obj - 1L)
@@ -46,7 +50,7 @@ test_that("conflict: different versions required for package", {
     `cran::pkgA` = list(direct = TRUE),
     `github::user/pkgA` = list(direct = TRUE)
   )
-  lp <- pkgplan_i_create_lp_problem(pkgs, policy = "lazy", rversion = getRversion())
+  lp <- pkgplan_i_create_lp_problem(pkgs, config = config, policy = "lazy")
   sol <- pkgplan_i_solve_lp_problem(lp)
   expect_equal(sol$status, 0)
   expect_true(sol$objval >= solve_dummy_obj - 1L)
@@ -65,7 +69,8 @@ test_that("standard direct & github indirect is not OK", {
       deps = list(make_fake_deps(Imports = "pkgA", Remotes = "user/pkgA"))),
     `user/pkgA` = list(extra = list(list(remotesha = "badcafe")))
   )
-  lp <- pkgplan_i_create_lp_problem(pkgs, policy = "lazy", rversion = getRversion())
+  config <- current_config()$set("platforms", c("macos", "source"))
+  lp <- pkgplan_i_create_lp_problem(pkgs, config = config, policy = "lazy")
   sol <- pkgplan_i_solve_lp_problem(lp)
   expect_equal(sol$status, 0)
   expect_true(sum(sol$solution * sol$objective) > 1e+8)
@@ -79,7 +84,8 @@ test_that("conflict between direct and indirect ref", {
       deps = list(make_fake_deps(Imports = "pkgA", Remotes = "user/pkgA"))),
     `user/pkgA` = list(list(extra = list(sha = "badcafe")))
   )
-  lp <- pkgplan_i_create_lp_problem(pkgs, policy = "lazy", rversion = getRversion())
+  config <- current_config()$set("platforms", c("macos", "source"))
+  lp <- pkgplan_i_create_lp_problem(pkgs, config = config, policy = "lazy")
   sol <- pkgplan_i_solve_lp_problem(lp)
   expect_equal(sol$status, 0)
   expect_true(sol$objval >= solve_dummy_obj - 1L)
@@ -94,7 +100,8 @@ test_that("version conflict", {
       deps = list(make_fake_deps(Imports = "pkgA (>= 2.0.0), pkgC"))),
     `pkgC` = list()
   )
-  lp <- pkgplan_i_create_lp_problem(pkgs, policy = "lazy", rversion = getRversion())
+  config <- current_config()$set("platforms", c("macos", "source"))
+  lp <- pkgplan_i_create_lp_problem(pkgs, config = config, policy = "lazy")
   sol <- pkgplan_i_solve_lp_problem(lp)
 
   solution <- list(status = "FAILED", data = NULL, problem = lp,
@@ -111,7 +118,8 @@ test_that("resolution failure", {
   pkgs <- make_fake_resolution(
     `pkgA` = list(status = "FAILED", direct = TRUE)
   )
-  lp <- pkgplan_i_create_lp_problem(pkgs, policy = "lazy", rversion = getRversion())
+  config <- current_config()$set("platforms", c("macos", "source"))
+  lp <- pkgplan_i_create_lp_problem(pkgs, config = config, policy = "lazy")
   sol <- pkgplan_i_solve_lp_problem(lp)
 
   solution <- list(status = "FAILED", data = NULL, problem = lp,
@@ -157,7 +165,8 @@ test_that("failure in non-needed package is ignored", {
     `bb/bb` = list(),
     xx = list()
   )
-  lp <- pkgplan_i_create_lp_problem(pkgs, policy = "lazy", rversion = getRversion())
+  config <- current_config()$set("platforms", c("macos", "source"))
+  lp <- pkgplan_i_create_lp_problem(pkgs, config = config, policy = "lazy")
   sol <- pkgplan_i_solve_lp_problem(lp)
   expect_true(sol$objval < 1e4)
   expect_equal(as.logical(sol$solution), as.logical(c(1, 0, 1, 1, 0)))
@@ -170,7 +179,8 @@ test_that("failure in dependency of a non-needed package is ignored", {
     bb = list(status = "FAILED"),
     `bb/bb` = list()
   )
-  lp <- pkgplan_i_create_lp_problem(pkgs, policy = "lazy", rversion = getRversion())
+  config <- current_config()$set("platforms", c("macos", "source"))
+  lp <- pkgplan_i_create_lp_problem(pkgs, config = config, policy = "lazy")
   sol <- pkgplan_i_solve_lp_problem(lp)
   expect_true(sol$objval < 1e4)
   expect_equal(as.logical(sol$solution), as.logical(c(1, 1, 0, 1, 0)))
@@ -189,7 +199,8 @@ test_that("failure if package needs newer R version", {
     ),
     `pkgC` = list()
   )
-  lp <- pkgplan_i_create_lp_problem(pkgs, policy = "lazy", rversion = getRversion())
+  config <- current_config()$set("platforms", c("macos", "source"))
+  lp <- pkgplan_i_create_lp_problem(pkgs, config = config, policy = "lazy")
   sol <- pkgplan_i_solve_lp_problem(lp)
 
   solution <- list(status = "FAILED", data = NULL, problem = lp,
@@ -214,7 +225,8 @@ test_that("failure if dependency needs newer R version", {
     ),
     `pkgC` = list()
   )
-  lp <- pkgplan_i_create_lp_problem(pkgs, policy = "lazy", rversion = getRversion())
+  config <- current_config()$set("platforms", c("macos", "source"))
+  lp <- pkgplan_i_create_lp_problem(pkgs, config = config, policy = "lazy")
   sol <- pkgplan_i_solve_lp_problem(lp)
 
   solution <- list(status = "FAILED", data = NULL, problem = lp,

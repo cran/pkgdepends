@@ -2,7 +2,7 @@
 #' @param refs Package names or references. See
 #'   ['Package references'][pkg_refs] for the syntax.
 #' @param config Configuration options, a named list. See
-#'  ['Configuration'][pkg_config]. If it does not include `library`, then
+#'  ['Configuration'][pkgdepends-config]. If it does not include `library`, then
 #'  `.libPaths()[1]` is added as `library`.
 #' @param ... Additional arguments, passed to
 #'   [`pkg_installation_proposal$new()`](#method-new).
@@ -79,7 +79,7 @@ pkg_installation_proposal <- R6::R6Class(
     #' the package files.
     #'
     #' @param config Configuration options, a named list. See
-    #'   ['Configuration'][pkg_config]. It needs to include the package
+    #'   ['Configuration'][pkgdepends-config]. It needs to include the package
     #'   library to install to, in `library`.
     #' @param policy Solution policy. See ['The dependency
     #'   solver'][pkg_solution].
@@ -126,10 +126,10 @@ pkg_installation_proposal <- R6::R6Class(
 
     #' @description
     #' Configuration options for the `pkg_installation_proposal` object. See
-    #' ['Configuration'][pkg_config] for details.
+    #' ['Configuration'][pkgdepends-config] for details.
     #'
     #' @return
-    #' Named list. See ['Configuration'][pkg_config] for the configuration
+    #' Named list. See ['Configuration'][pkgdepends-config] for the configuration
     #' options.
     #'
     #' @examplesIf pkgdepends:::is_online()
@@ -455,6 +455,21 @@ pkg_installation_proposal <- R6::R6Class(
                            cache = cache)
     },
 
+    #' @description
+    #' Install system requirements. It does nothing if system requirements
+    #' are turned off. It errors if we could not look up the system
+    #' requirements.
+
+    install_sysreqs = function() {
+      srq <- self$get_solution()$sysreqs
+      if (is.null(srq)) return(invisible())
+      if (!is.null(srq$error)) {
+        stop("sysreqs error: ", conditionMessage(srq$error))
+      }
+      config <- get_private(private$plan)$config
+      sysreqs_install(srq$result %||% srq, config)
+    },
+
     #' Create an installation plan for the downloaded packages.
     #'
     #' @return
@@ -494,6 +509,8 @@ pkg_installation_proposal <- R6::R6Class(
       sol <- if (has_sol) private$plan$get_solution()
       sol_err <- has_sol && sol$status != "OK"
 
+      has_sys <- has_sol && !is.null(sol$sysreqs)
+
       c("<pkg_installation_proposal>",
         "+ refs:", paste0("  - ", refs),
         paste0("+ solution policy: ", private$policy),
@@ -510,6 +527,7 @@ pkg_installation_proposal <- R6::R6Class(
         if (has_sol) "(use `$create_lockfile()` to write a lock file)",
         if (has_dls) "(use `$get_downloads()` to get download data)",
         if (has_dls) "(use `$get_install_plan()` to get the installation plan)",
+        if (has_sys) "(use `$install_sysreqs()` to install system packages)",
         if (has_dls) "(use `$install()` to install the packages)"
       )
     },

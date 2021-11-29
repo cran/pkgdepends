@@ -12,7 +12,7 @@ new_pkg_installation_proposal(refs, config = list(), ...)
 \link[=pkg_refs]{'Package references'} for the syntax.}
 
 \item{config}{Configuration options, a named list. See
-\link[=pkg_config]{'Configuration'}. If it does not include \code{library}, then
+\link[=pkgdepends-config]{'Configuration'}. If it does not include \code{library}, then
 \code{.libPaths()[1]} is added as \code{library}.}
 
 \item{...}{Additional arguments, passed to
@@ -257,6 +257,7 @@ pdi
 \item \href{#method-get_downloads}{\code{pkg_installation_proposal$get_downloads()}}
 \item \href{#method-stop_for_download_error}{\code{pkg_installation_proposal$stop_for_download_error()}}
 \item \href{#method-install}{\code{pkg_installation_proposal$install()}}
+\item \href{#method-install_sysreqs}{\code{pkg_installation_proposal$install_sysreqs()}}
 \item \href{#method-get_install_plan}{\code{pkg_installation_proposal$get_install_plan()}}
 \item \href{#method-format}{\code{pkg_installation_proposal$format()}}
 \item \href{#method-print}{\code{pkg_installation_proposal$print()}}
@@ -290,7 +291,7 @@ the package files.
 \link[=pkg_refs]{'Package references'} for the syntax.}
 
 \item{\code{config}}{Configuration options, a named list. See
-\link[=pkg_config]{'Configuration'}. It needs to include the package
+\link[=pkgdepends-config]{'Configuration'}. It needs to include the package
 library to install to, in \code{library}.}
 
 \item{\code{policy}}{Solution policy. See \link[=pkg_solution]{'The dependency solver'}.}
@@ -321,13 +322,13 @@ A character vector of package refs that were used to create the
 \if{latex}{\out{\hypertarget{method-get_config}{}}}
 \subsection{Method \code{get_config()}}{
 Configuration options for the \code{pkg_installation_proposal} object. See
-\link[=pkg_config]{'Configuration'} for details.
+\link[=pkgdepends-config]{'Configuration'} for details.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{pkg_installation_proposal$get_config()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
-Named list. See \link[=pkg_config]{'Configuration'} for the configuration
+Named list. See \link[=pkgdepends-config]{'Configuration'} for the configuration
 options.
 }
 }
@@ -594,8 +595,20 @@ Install the downloaded packages. It calls \code{\link[=install_package_plan]{ins
 
 \subsection{Returns}{
 The return value of \code{\link[=install_package_plan]{install_package_plan()}}.
-Create an installation plan for the downloaded packages.
 }
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-install_sysreqs"></a>}}
+\if{latex}{\out{\hypertarget{method-install_sysreqs}{}}}
+\subsection{Method \code{install_sysreqs()}}{
+Install system requirements. It does nothing if system requirements
+are turned off. It errors if we could not look up the system
+requirements.
+Create an installation plan for the downloaded packages.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{pkg_installation_proposal$install_sysreqs()}\if{html}{\out{</div>}}
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-get_install_plan"></a>}}

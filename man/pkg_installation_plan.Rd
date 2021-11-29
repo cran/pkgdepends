@@ -11,7 +11,7 @@ new_pkg_installation_plan(lockfile = "pkg.lock", config = list(), ...)
 \item{lockfile}{Path to the lock file to use.}
 
 \item{config}{Configuration options, a named list. See
-\link[=pkg_config]{'Configuration'}. If it does not include \code{library}, then
+\link[=pkgdepends-config]{'Configuration'}. If it does not include \code{library}, then
 \code{.libPaths()[1]} is added as \code{library}.}
 
 \item{...}{Additional arguments, passed to
@@ -44,6 +44,7 @@ them.
 \item \href{#method-get_solve_policy}{\code{pkg_installation_plan$get_solve_policy()}}
 \item \href{#method-set_solve_policy}{\code{pkg_installation_plan$set_solve_policy()}}
 \item \href{#method-solve}{\code{pkg_installation_plan$solve()}}
+\item \href{#method-update}{\code{pkg_installation_plan$update()}}
 \item \href{#method-format}{\code{pkg_installation_plan$format()}}
 \item \href{#method-clone}{\code{pkg_installation_plan$clone()}}
 }
@@ -62,6 +63,7 @@ them.
 \item \out{<span class="pkg-link" data-pkg="pkgdepends" data-topic="pkg_installation_proposal" data-id="get_resolution">}\href{../../pkgdepends/html/pkg_installation_proposal.html#method-get_resolution}{\code{pkgdepends::pkg_installation_proposal$get_resolution()}}\out{</span>}
 \item \out{<span class="pkg-link" data-pkg="pkgdepends" data-topic="pkg_installation_proposal" data-id="get_solution">}\href{../../pkgdepends/html/pkg_installation_proposal.html#method-get_solution}{\code{pkgdepends::pkg_installation_proposal$get_solution()}}\out{</span>}
 \item \out{<span class="pkg-link" data-pkg="pkgdepends" data-topic="pkg_installation_proposal" data-id="install">}\href{../../pkgdepends/html/pkg_installation_proposal.html#method-install}{\code{pkgdepends::pkg_installation_proposal$install()}}\out{</span>}
+\item \out{<span class="pkg-link" data-pkg="pkgdepends" data-topic="pkg_installation_proposal" data-id="install_sysreqs">}\href{../../pkgdepends/html/pkg_installation_proposal.html#method-install_sysreqs}{\code{pkgdepends::pkg_installation_proposal$install_sysreqs()}}\out{</span>}
 \item \out{<span class="pkg-link" data-pkg="pkgdepends" data-topic="pkg_installation_proposal" data-id="print">}\href{../../pkgdepends/html/pkg_installation_proposal.html#method-print}{\code{pkgdepends::pkg_installation_proposal$print()}}\out{</span>}
 \item \out{<span class="pkg-link" data-pkg="pkgdepends" data-topic="pkg_installation_proposal" data-id="show_solution">}\href{../../pkgdepends/html/pkg_installation_proposal.html#method-show_solution}{\code{pkgdepends::pkg_installation_proposal$show_solution()}}\out{</span>}
 \item \out{<span class="pkg-link" data-pkg="pkgdepends" data-topic="pkg_installation_proposal" data-id="stop_for_download_error">}\href{../../pkgdepends/html/pkg_installation_proposal.html#method-stop_for_download_error}{\code{pkgdepends::pkg_installation_proposal$stop_for_download_error()}}\out{</span>}
@@ -92,8 +94,8 @@ packages, according to the plan.
 \describe{
 \item{\code{lockfile}}{Path to the lock file to use.}
 
-\item{\code{config}}{Configuration options, a named list. See
-\link[=pkg_config]{'Configuration'}. It needs to include the package
+\item{\code{config}}{Configuration options. See
+\link[=pkgdepends-config]{'Configuration'}. It needs to include the package
 library to install to, in \code{library}.}
 
 \item{\code{remote_types}}{Custom remote ref types, this is for advanced
@@ -150,6 +152,27 @@ This function is implemented for installation plans, and will error.
 This function is implemented for installation plans, and will error.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{pkg_installation_plan$solve()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-update"></a>}}
+\if{latex}{\out{\hypertarget{method-update}{}}}
+\subsection{Method \code{update()}}{
+Update the plan to the current state of the library. If the library
+has not changed since the plan was created, then it does nothing.
+If new packages have been installed, then it might not be necessary
+to download and install all packages in the plan.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{pkg_installation_plan$update()}\if{html}{\out{</div>}}
+}
+
+\subsection{Details}{
+This operation is different than creating a new proposal with the
+updated library, because it uses the the packages and package
+versions of the original plan. E.g. if the library has a newer
+version of a package, then \verb{$update()} will downgrade it to the
+version in the plan.
 }
 
 }

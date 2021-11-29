@@ -118,7 +118,9 @@ pkgplan_async_resolve <- function(self, private) {
   private$dirty <- TRUE
   private$resolution <- new_resolution(
     config = private$config, cache = private$cache,
-    library = private$config$library, remote_types = private$remote_types)
+    library = private$config$get("library"),
+    remote_types = private$remote_types
+  )
 
   private$resolution$push(direct = TRUE, .list = private$remotes)
 
@@ -195,7 +197,7 @@ res_init <- function(self, private, config, cache, library,
   private$library <- library
   private$remote_types <- remote_types %||% default_remote_types()
   private$metadata <- list(resolution_start = Sys.time())
-  private$dependencies <- as_pkg_dependencies(config$dependencies)
+  private$dependencies <- as_pkg_dependencies(config$get("dependencies"))
   private$bar <- private$create_progress_bar()
 
   self$result <- res_make_empty_df()
@@ -381,7 +383,7 @@ res__set_result_df <- function(self, private, row_idx, value) {
 
 res__set_result_list <- function(self, private, row_idx, value) {
   # already done?
-  if (value$ref %in% self$result$ref) return()
+  if (all(value$ref %in% self$result$ref)) return()
   # direct version already on the TODO list?
   if (value$ref %in% private$state$ref &&
       !value$direct &&
@@ -424,20 +426,25 @@ resolve_remote <- function(remote, direct, config, cache, dependencies,
     remote, direct = direct, config = config, cache = cache,
     dependencies = dependencies
   )$
-    then(function(value) {
-      # remote is either direct or indirect dependency, depending on
-      # 'direct', and the rest are all indirect
-      if (NROW(value)) {
-        value[["dep_types"]] <- list(dependencies[[2]])
-        if (!is.null(remote$package)) {
-          value$dep_types[value$package == remote$package] <-
-            list(dependencies[[2 - direct]])
+  then(function(value) {
+      # if 'dep_types' was already added by the resolution of the remote
+      # type (like any::) then we just keep that. Otherwise calculate from
+      # 'dependencies'
+      if (is.null(value[["dep_types"]])) {
+        # remote is either direct or indirect dependency, depending on
+        # 'direct', and the rest are all indirect
+        if (NROW(value)) {
+          value[["dep_types"]] <- list(dependencies[[2]])
+          if (!is.null(remote$package)) {
+            value$dep_types[value$package == remote$package] <-
+              list(dependencies[[2 - direct]])
+          } else {
+            value$dep_types[value$ref == remote$ref] <-
+              list(dependencies[[2 - direct]])
+          }
         } else {
-          value$dep_types[value$ref == remote$ref] <-
-            list(dependencies[[2 - direct]])
+          value[["dep_types"]] <- list()
         }
-      } else {
-        value[["dep_types"]] <- list()
       }
       list(value = value, id = id)
   })$
@@ -464,10 +471,21 @@ resolve_from_description <- function(path, sources, remote, direct,
     error = function(e) "*"
   )
 
-  platform <- tryCatch(
-    dsc$get_built()$Platform %|z|% "source",
-    error = function(e) "source"
-  )
+  platform <- if (dsc$has_fields("Built")) {
+    built <- dsc$get_built()
+    archs <- gsub(" ", "", dsc$get("Archs"))
+    if (built$OStype == "windows") {
+      if (is.na(archs) || archs == "i386,x64" || archs == "x64,i386") {
+        "i386+x86_64-w64-mingw32"
+      } else {
+        built$Platform
+      }
+    } else {
+      built$Platform
+    }
+  } else {
+    "source"
+  }
 
   nc <- dsc$get_field("NeedsCompilation", NA)
   if  (!is.na(nc)) nc <- tolower(nc) %in% c("true", "yes")
@@ -503,7 +521,8 @@ resolve_from_description <- function(path, sources, remote, direct,
     unknown_deps = setdiff(unknown, "R"),
     extra = list(list(description = dsc)),
     metadata = meta,
-    params = list(remote$params)
+    params = list(remote$params),
+    sysreqs = dsc$get_field("SystemRequirements", "")
   )
 }
 
@@ -535,7 +554,7 @@ resolve_from_metadata <- function(remotes, direct, config, cache,
         "ref", "type", "status", "package", "version", "license",
         "needscompilation", "priority", "md5sum", "platform",
         "rversion", "repodir", "target", "deps", "sources", "mirror",
-        "filesize", "sha256")
+        "filesize", "sha256", "sysreqs")
 
       res <- data[cols]
       res$built <- data[["built"]] %||% rep(NA_character_, nrow(res))
@@ -592,7 +611,7 @@ make_failed_resolution <- function(refs, type, direct) {
   tibble(
     ref = refs,
     type = type,
-    package = refs,
+    package = sub("^[a-z]+::", "", refs),
     version = NA_character_,
     sources = replicate(length(refs), NA_character_, simplify = FALSE),
     direct = direct,

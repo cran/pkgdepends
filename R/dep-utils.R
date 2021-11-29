@@ -112,16 +112,6 @@ parse_all_deps <- function(deps) {
   res[, c("ref", setdiff(names(res), "ref"))]
 }
 
-get_cran_extension <- function(platform) {
-  switch(
-    platform,
-    "source" = ".tar.gz",
-    "macos" = ".tgz",
-    "windows" = ".zip",
-    stop("Unknown platform: ", sQuote(platform))
-  )
-}
-
 resolve_ref_deps <- function(deps, remotes, extra) {
   deps <- deps_from_desc(deps, last = FALSE)
 
@@ -163,7 +153,7 @@ resolve_ref_deps <- function(deps, remotes, extra) {
 #'   as the requested dependency types, for direct installations and
 #'   dependent packages.
 #' - If a character vector, then it is taken as the dependency types
-#'   both for direct installations, and the hard dependencies are
+#'   for direct installations, and the hard dependencies are
 #'   used for the dependent packages.
 #'
 #' If `"hard"` is included, then it is replaced by the hard dependency

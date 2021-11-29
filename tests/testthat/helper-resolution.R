@@ -15,7 +15,7 @@ make_fake_resolution1 <- function(ref, args = list()) {
   pref <- parse_pkg_refs(ref)[[1]]
   if (!is.null(args$extra)) pref[names(args$extra)] <- args$extra
 
-  mirror <- args$mirror %||% pkgplan_default_config()$`cran-mirror`
+  mirror <- args$mirror %||% current_config()$get("cran-mirror")
   repodir <- args$repodir %||% "src/contrib"
   version <- args$version %||% "1.0.0"
   filename <- paste0(pref$package, "_", version, ".tar.gz")
@@ -55,9 +55,8 @@ make_fake_resolution <- function(...) {
 }
 
 describe_fake_error <- function(pkgs, policy = "lazy",
-                                rversion = getRversion()) {
-  lp <- pkgplan_i_create_lp_problem(pkgs, policy = policy,
-                                    rversion = rversion)
+                                config = current_config()) {
+  lp <- pkgplan_i_create_lp_problem(pkgs, config, policy)
   sol <- pkgplan_i_solve_lp_problem(lp)
 
   expect_true(sol$objval >= solve_dummy_obj - 1)
