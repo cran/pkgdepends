@@ -128,7 +128,7 @@ pkgplan_solve <- function(self, private, policy) {
   )
 
   lib_status <- calculate_lib_status(res$data, pkgs)
-  res$data <- tibble::as_tibble(cbind(res$data, lib_status))
+  res$data <- as_data_frame(cbind(res$data, lib_status))
   res$data$cache_status <-
     calculate_cache_status(res$data, private$cache)
 
@@ -208,6 +208,7 @@ pkgplan_i_create_lp_problem <- function(pkgs, config, policy) {
   lp <- pkgplan_i_lp_init(pkgs, config, policy)
   lp <- pkgplan_i_lp_objectives(lp)
   lp <- pkgplan_i_lp_failures(lp)
+  lp <- pkgplan_i_lp_ignore(lp)
   lp <- pkgplan_i_lp_platforms(lp)
   lp <- pkgplan_i_lp_no_multiples(lp)
   lp <- pkgplan_i_lp_rversion(lp, rversion)
@@ -304,6 +305,17 @@ pkgplan_i_lp_failures <- function(lp) {
   lp
 }
 
+pkgplan_i_lp_ignore <- function(lp) {
+  ignored <- which(vlapply(lp$pkgs$params, is_true_param, "ignore"))
+  for (wh in ignored) {
+    lp <- pkgplan_i_lp_add_cond(lp, wh, op = "==", rhs = 0,
+                                type = "ignored-by-user")
+  }
+  lp$ruled_out <- c(lp$ruled_out, ignored)
+
+  lp
+}
+
 pkgplan_i_lp_platforms <- function(lp) {
   ## check if platform is good
   badplatform <- function(wh) {
@@ -355,12 +367,27 @@ pkgplan_i_lp_rversion <- function(lp, rversion) {
   depconds <- function(wh) {
     if (pkgs$status[wh] != "OK") return()
     deps <- pkgs$deps[[wh]]
-    deps <- deps[! deps$ref %in% base, ]
-    if (! "R" %in% deps$ref) return()
-    needrver <- deps$version[deps$ref == "R"]
-    if (any(rversion < needrver)) {
+    deps <- deps[deps$ref == "R", , drop = FALSE]
+    if (nrow(deps) == 0) return()
+    type <- NA
+    for (idx in seq_len(nrow(deps))) {
+      need <- deps$version[idx]
+      needrver <- paste0(deps$op[[idx]], " ", need)
+      switch(
+        deps$op[[idx]],
+        "<"  = if (! rversion <  need) type <- "new-rversion",
+        "<=" = if (! rversion <= need) type <- "new-rversion",
+        "==" = if (! rversion == need) type <- "different-rversion",
+        ">=" = if (! rversion >= need) type <- "old-rversion",
+        ">"  = if (! rversion >  need) type <- "old-rversion",
+        warning(paste0("Ignoring R version requirement: ", needrver))
+      )
+      # Enough to have one to rule out
+      if (!is.na(type)) break
+    }
+    if (!is.na(type)) {
       lp <<- pkgplan_i_lp_add_cond(lp, wh, op = "==", rhs = 0,
-                                   type = "bad-rversion", note = needrver)
+                                   type = type, note = needrver)
       lp$ruled_out <<- c(lp$ruled_out, wh)
     }
   }
@@ -479,6 +506,15 @@ pkgplan_i_lp_dependencies <- function(lp) {
   num_candidates <- lp$num_candidates
   ruled_out <- lp$ruled_out
   base <- base_packages()
+  ignored <- vlapply(pkgs$params, is_true_param, "ignore")
+  ignore_rver <- vcapply(pkgs$params, get_param_value, "ignore-before-r")
+  if (any(!is.na(ignore_rver))) {
+    ignore_rver[is.na(ignore_rver)] <- "0.0.0"
+    current <- min(lp$config$get("r_versions"))
+    ignored2 <- ignore_rver > current
+    ignored <- ignored | ignored2
+  }
+  soft_deps <- pkg_dep_types_soft()
 
   ## 4. Package dependencies must be satisfied
   depconds <- function(wh) {
@@ -496,9 +532,17 @@ pkgplan_i_lp_dependencies <- function(lp) {
       depver <- deps$version[i]
       depop  <- deps$op[i]
       deppkg <- deps$package[i]
-      ## See which candidate satisfies this ref
+      deptyp <- deps$type[i]
+
+      # candidates
       res <- pkgs[match(depref, pkgs$ref), ]
       cand <- which(pkgs$package == deppkg)
+
+      # if all candidates are ignored and the package is a soft
+      # dependency, then nothing to do
+      if (all(ignored[cand]) && deptyp %in% soft_deps) next
+
+      # good candidates
       good_cand <- Filter(
         x = cand,
         function(c) {
@@ -556,14 +600,26 @@ format_cond <- function(x, cond) {
     ref <- x$pkgs$ref[cond$vars]
     glue("`{ref}` resolution failed")
 
+  } else if (cond$type == "ignored-by-user") {
+    ref <- x$pkgs$ref[cond$vars]
+    glue("`{ref}` explicitly ignored by user")
+
   } else if (cond$type == "matching-platform") {
     ref <- x$pkgs$ref[cond$vars]
     plat <- x$pkgs$platform[cond$vars]
     glue("Platform `{plat}` does not match for `{ref}`")
 
-  } else if (cond$type == "bad-rversion") {
+  } else if (cond$type == "old-rversion") {
     ref <- x$pkgs$ref[cond$vars]
-    glue("`{ref}` needs a newer R version")
+    glue("`{ref}` needs a newer R version: {cond$note}")
+
+  } else if (cond$type == "new-rversion") {
+    ref <- x$pkgs$ref[cond$vars]
+    glue("`{ref}` needs an older R version: {cond$note}")
+
+  } else if (cond$type == "different-rversion") {
+    ref <- x$pkgs$ref[cond$vars]
+    glue("`{ref}` needs a different R version: {cond$note}")
 
   } else if (cond$type == "direct-update") {
     ref <- x$pkgs$ref[cond$vars]
@@ -865,7 +921,7 @@ pkgplan_export_install_plan <- function(self, private, plan_file, version) {
 
 #' @importFrom jsonlite unbox toJSON
 
-as_json_lite_plan <- function(liteplan, pretty = TRUE, ...) {
+as_json_lite_plan <- function(liteplan, pretty = as.logical(Sys.getenv("PKG_PRETTY_JSON", "TRUE")), ...) {
   tolist1 <- function(x) lapply(x, function(v) lapply(as.list(v), unbox))
   liteplan$packages$metadata <- tolist1(liteplan$packages$metadata)
   toJSON(liteplan, pretty = pretty, ...)
@@ -905,7 +961,7 @@ calculate_lib_status <- function(sol, res) {
   })
   status[status == "current" & !is.na(new_version)] <- "no-update"
 
-  tibble::tibble(
+  data_frame(
     lib_status = status,
     old_version = lib_ver,
     new_version = new_version
@@ -947,7 +1003,8 @@ describe_solution_error <- function(pkgs, solution) {
   ## 7. otherwise YES
 
   FAILS <- c("failed-res", "satisfy-direct", "conflict", "dep-failed",
-             "bad-rversion", "matching-platform")
+             "old-rversion", "new-rvresion", "different-rversion",
+             "matching-platform")
 
   state <- rep("maybe-good", num)
   note <- replicate(num, NULL)
@@ -971,12 +1028,12 @@ describe_solution_error <- function(pkgs, solution) {
     }
   }
 
-  ## Candidates that need a newer R version
-  for (w in which(typ == "bad-rversion")) {
+  ## Candidates that need a newer/older/different R version
+  for (w in which(typ %in% c("old-rversion", "new-rversion", "different-rversion"))) {
     sv <- var[[w]]
     if (state[sv] != "maybe-good") next
     needs <- cnd[[w]]$note
-    state[sv] <- "bad-rversion"
+    state[sv] <- typ[[w]]
     note[[sv]] <- c(note[[sv]], glue("Needs R {needs}"))
   }
 

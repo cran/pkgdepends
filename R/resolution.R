@@ -37,7 +37,7 @@
 #'
 #' ## The result
 #'
-#' The result of the resolution is a data frame (tibble) with lots of
+#' The result of the resolution is a data frame with lots of
 #' information about the packages and their dependencies. The columns that
 #' are not documented here may be removed or changed, because they are
 #' either used internally or experimental.
@@ -48,7 +48,7 @@
 #'   It is `NA` for `installed::` package refs.
 #' * `dep_types`: Character vector of dependency types that were
 #'   considered for this package. (This is a list column.)
-#' * `deps`: Dependencies of the package, in a data frame (tibble). See
+#' * `deps`: Dependencies of the package, in a data frame. See
 #'   'Package dependency tables' below.
 #' * `direct`: Whether this package (ref, really) was directly specified,
 #'   or added as a dependency.
@@ -167,6 +167,7 @@ resolution <- R6::R6Class(
     library = NULL,
     deferred = NULL,
     state = NULL,
+    params = NULL,
     dependencies = NULL,
     metadata = NULL,
     bar = NULL,
@@ -202,7 +203,7 @@ res_init <- function(self, private, config, cache, library,
 
   self$result <- res_make_empty_df()
 
-  private$state <- tibble(
+  private$state <- data_frame(
     ref = character(),
     remote = list(),
     status = character(),
@@ -269,7 +270,18 @@ res_init <- function(self, private, config, cache, library,
 }
 
 res_push <- function(self, private, ..., direct, .list = .list) {
+  self; private
   new <- c(list(...), .list)
+
+  ## Set (new) parameters
+  new_types <- vcapply(new, "[[", "type")
+  params <- new[new_types == "param"]
+  new <- new[new_types != "param"]
+
+  if (length(params)) {
+    private$params <- c(private$params, params)
+    update_params(self, private, private$params)
+  }
 
   ## Drop the ones already resolving up front
   new_refs <- vcapply(new, "[[", "ref")
@@ -305,8 +317,8 @@ res_push <- function(self, private, ..., direct, .list = .list) {
 
     private$state <- rbind(
       private$state,
-      tibble(ref = n$ref, remote = list(n), status = NA_character_,
-             direct = direct, async_id = dx$id, started_at = Sys.time())
+      data_frame(ref = n$ref, remote = list(n), status = NA_character_,
+                 direct = direct, async_id = dx$id, started_at = Sys.time())
     )
 
     dx$dx$then(private$deferred)
@@ -336,9 +348,9 @@ res__resolve_delayed <- function(self, private, resolve) {
 
       private$state <- rbind(
         private$state,
-        tibble(ref = vcapply(n2, "[[", "ref"), remote = n2,
-               status = NA_character_, direct = FALSE,
-               async_id = dx$id, started_at = Sys.time())
+        data_frame(ref = vcapply(n2, "[[", "ref"), remote = n2,
+                   status = NA_character_, direct = FALSE,
+                   async_id = dx$id, started_at = Sys.time())
       )
       dx$dx$then(private$deferred)
     }
@@ -396,6 +408,7 @@ res__try_finish <- function(self, private, resolve) {
   if (length(private$delayed)) return(private$resolve_delayed(resolve))
   if (all(! is.na(private$state$status))) {
     "!DEBUG resolution finished"
+    update_params(self, private, private$params)
     private$metadata$resolution_end <- Sys.time()
     self$result$cache_status <-
       calculate_cache_status(self$result, private$cache)
@@ -454,6 +467,33 @@ resolve_remote <- function(remote, direct, config, cache, dependencies,
     })
 
   list(dx = dx, id = id)
+}
+
+update_params <- function(self, private, params) {
+  for (par in params) {
+    if (par$package == "" && length(self$result$params)) {
+      self$result$params <- lapply(self$result$params, function(p) {
+        p[names(par$params)] <- par$params
+        p
+      })
+      self$result$remote <- lapply(self$result$remote, function(rem) {
+        if (is.list(rem)) rem$params[names(par$params)] <- par$params
+        rem
+      })
+    } else {
+      sel <- self$result$package == par$package
+      if (any(sel)) {
+        self$result$params[sel] <- lapply(self$result$params[sel], function(p) {
+          p[names(par$params)] <- par$params
+          p
+        })
+        self$result$remote[sel] <- lapply(self$result$remote[sel], function(rem) {
+          if (is.list(rem)) rem$params[names(par$params)] <- par$params
+          rem
+        })
+      }
+    }
+  }
 }
 
 resolve_from_description <- function(path, sources, remote, direct,
@@ -556,6 +596,8 @@ resolve_from_metadata <- function(remotes, direct, config, cache,
         "rversion", "repodir", "target", "deps", "sources", "mirror",
         "filesize", "sha256", "sysreqs")
 
+      cols <- intersect(names(data), cols)
+
       res <- data[cols]
       res$built <- data[["built"]] %||% rep(NA_character_, nrow(res))
       idx <- match(res$package, packages)
@@ -608,7 +650,7 @@ make_failed_resolution <- function(refs, type, direct) {
   err <- structure(
     list(message = paste0("Can't find package called ", rstr, ".")),
     class = c("error", "condition"))
-  tibble(
+  data_frame(
     ref = refs,
     type = type,
     package = sub("^[a-z]+::", "", refs),
