@@ -122,20 +122,6 @@ make_dl_status <- function(status, url, target, bytes, error = NULL) {
   obj
 }
 
-write_bin_atomic <- function(object, file) {
-  tmp <- paste0(file, ".tmp")
-  on.exit(try(unlink(tmp), silent = TRUE))
-  writeBin(object, tmp)
-  file.rename(tmp, file)
-}
-
-save_rds_atomic <- function(object, file, ...) {
-  tmp <- paste(file, ".tmp")
-  on.exit(try(unlink(tmp), silent = TRUE))
-  saveRDS(object, tmp, ...)
-  file.rename(tmp, file)
-}
-
 comma_wrap <- function(x, indent = 2, exdent = indent, sep = ", ") {
   w <- strwrap(paste(x, collapse = sep), indent = indent, exdent = exdent)
   paste(w, collapse = "\n")
@@ -408,13 +394,6 @@ is_interactive <- function() {
   } else {
     interactive()
   }
-}
-
-has_asciicast_support <- function() {
- tryCatch({
-   asNamespace("asciicast")$is_recording_supported() &&
-     asNamespace("asciicast")$is_svg_supported()
- }, error = function(e) FALSE)
 }
 
 try_silently <- function(expr) {
