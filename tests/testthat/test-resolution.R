@@ -146,10 +146,8 @@ test_that("error", {
 
   expect_equal(nrow(res), 2)
   expect_equal(res$ref, c("foo::bar", "foo::bar2"))
-  expect_s3_class(res$error[[1]], "error")
-  expect_s3_class(res$error[[2]], "error")
-  expect_equal(conditionMessage(res$error[[1]]), "foobar")
-  expect_equal(conditionMessage(res$error[[2]]), "foobar")
+  expect_snapshot(res$error[[1]])
+  expect_snapshot(res$error[[2]])
   expect_equal(res$status, c("FAILED", "FAILED"))
   expect_equal(res$type, c("foo", "foo"))
 })
@@ -202,7 +200,7 @@ test_that("installed refs are also resolved", {
 })
 
 test_that("explicit cran", {
-  skip_on_cran()
+  setup_fake_apps()
   conf <- current_config()
   cache <- list(package = pkgcache::package_cache$new(),
                 metadata = pkgcache::get_cranlike_metadata_cache())
@@ -212,7 +210,7 @@ test_that("explicit cran", {
     res$when_complete()
   }
 
-  res <- synchronise(do("cran::dplyr"))
+  res <- suppressMessages(synchronise(do("cran::dplyr")))
   expect_true(inherits(res, "tbl"))
   expect_true("cran::dplyr" %in% res$ref)
   expect_true(all(grep("::", res$ref, value = TRUE) == "cran::dplyr"))
@@ -243,7 +241,7 @@ test_that("explicit cran", {
 })
 
 test_that("standard", {
-  skip_on_cran()
+  setup_fake_apps()
   conf <- current_config()
   cache <- list(
     package = pkgcache::package_cache$new(),
@@ -285,6 +283,7 @@ test_that("standard", {
 })
 
 test_that("dependencies are honoured", {
+  setup_fake_apps()
   conf <- current_config()
   cache <- list(
     package = pkgcache::package_cache$new(),
@@ -325,6 +324,7 @@ test_that("dependencies are honoured", {
 })
 
 test_that("error if cannot find package", {
+  setup_fake_apps()
   conf <- current_config()
   cache <- list(
     package = pkgcache::package_cache$new(),
@@ -336,7 +336,7 @@ test_that("error if cannot find package", {
   }
 
   bad <-  c("cran::thiscannotexistxxx", "neitherthisonexxx")
-  res <- synchronise(do(bad))
+  res <- suppressMessages(synchronise(do(bad)))
   expect_equal(res$ref, bad)
   expect_equal(res$type, c("cran", "standard"))
   expect_equal(res$direct, c(TRUE, TRUE))
@@ -344,6 +344,7 @@ test_that("error if cannot find package", {
 })
 
 test_that("dependency types", {
+  setup_fake_apps()
   conf <- current_config()
   conf$set("dependencies", TRUE)
   cache <- list(
@@ -355,7 +356,7 @@ test_that("dependency types", {
     res$when_complete()
   }
 
-  res <- synchronise(do("processx"))
+  res <- suppressMessages(synchronise(do("processx")))
   dt <- res$dep_types
   expect_equal(
     dt[res$package == "processx"],

@@ -1,4 +1,36 @@
 
+install_binary <- function(filename, lib = .libPaths()[[1L]],
+                           metadata = NULL, quiet = FALSE) {
+
+  assert_that(
+    is_existing_file(filename),
+    is_string(lib),
+    all_named(metadata),
+    is.null(quiet) || is_flag(quiet)
+  )
+
+  stdout <- ""
+
+  px <- make_install_process(filename, lib = lib, metadata = metadata)
+
+  repeat {
+    px$poll_io(100)
+    stdout <- paste0(stdout, px$read_output())
+    if (!px$is_alive() && !px$is_incomplete_output()) {
+      break
+    }
+  }
+
+  if (px$get_exit_status() != 0) {
+    stop("Package installation failed\n", stdout)
+  }
+
+  cli_alert_success(paste0("Installed ", filename))
+
+  invisible(px$get_result())
+}
+
+
 local_binary_package <- function(pkgname, ..., envir = parent.frame()) {
 
   # All arguments must be named
@@ -33,7 +65,7 @@ local_binary_package <- function(pkgname, ..., envir = parent.frame()) {
 
 binary_test_package <- function(name) {
   mkdirp(tmp <- tempfile())
-  file.copy(test_path(name), tmp, recursive = TRUE)
+  file.copy(test_path("fixtures", name), tmp, recursive = TRUE)
   zip_path <- system.file(package = "zip", "bin", .Platform$r_arch)
   withr::with_path(
     zip_path,
@@ -43,7 +75,7 @@ binary_test_package <- function(name) {
 
 source_test_package <- function(name) {
   mkdirp(tmp <- tempfile())
-  file.copy(test_path(name), tmp, recursive = TRUE)
+  file.copy(test_path("fixtures", name), tmp, recursive = TRUE)
   pkgbuild::build(file.path(tmp, name), binary = FALSE, quiet = TRUE)
 }
 
@@ -78,8 +110,9 @@ make_dummy_worker_process <- function(n_iter = 10, sleep = 1, status = 0) {
         }
                                         # nocov end
       },
-      args = list(n_iter = n_iter, sleep = sleep, status = status)
-      ))
+      args = list(n_iter = n_iter, sleep = sleep, status = status),
+      stderr = "2>&1"
+    ))
   }
 }
 

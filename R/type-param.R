@@ -25,7 +25,7 @@ download_remote_param <- function(resolution, target, target_tree, config,
 
 satisfy_remote_param <- function(resolution, candidate, config, ...) {
   ## this is never actually called
-  stop("Internal error")  
+  stop("Internal error")
 }
 
 installedok_remote_param <- function(installed, solution, config, ...) {

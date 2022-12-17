@@ -51,12 +51,9 @@ pkg_name_check <- function(name, dictionaries = NULL) {
 }
 
 async_pkg_name_check <- function(name, dictionaries = NULL) {
-  stopifnot(
-    is.character(name),
-    length(name) == 1,
-    !is.na(name),
-    is.null(dictionaries) || is.character(dictionaries),
-    !anyNA(dictionaries)
+  assert_that(
+    is_string(name),
+    is.null(dictionaries) || is_character(dictionaries)
   )
 
   default_dictionaries <- c(
@@ -144,7 +141,7 @@ async_cranlike_check <- function(name) {
 
   meta <- pkgcache::cranlike_metadata_cache$new(
     platforms = "source",
-    bioc = TRUE,
+    bioc = current_config()$get("use_bioconductor"),
     cran_mirror = "https://cran.r-project.org",
     repos = repos,
     update_after = as.difftime(5, units = "mins"))
@@ -173,7 +170,7 @@ async_pnc_crandb <- function(name) {
 async_pnc_crandb_query <- function(name) {
   base <- Sys.getenv(
     "PKG_NAME_CHECK_CRANDB_URL",
-    "https://crandb.r-pkg.org:6984/cran/_design/app/_view/alllower"
+    "https://crandb.r-pkg.org:2053/cran/_design/app/_view/alllower"
   )
   url <- paste0(base, "?key=%22", tolower(name), "%22")
   http_get(url)
@@ -778,7 +775,7 @@ function() {
     compress = "xz"
   )
 }
-#nocov end
+# nocov end
 
 pnc_bioc_old_annotation <- function() {
   readRDS(system.file("exdata", "biocpackages.rds", package = "pkgdepends"))

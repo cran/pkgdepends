@@ -91,8 +91,8 @@ test_that("pkgplan_i_lp_dependencies", {
   lp <- pkgplan_i_lp_dependencies(lp)
   expect_equal(length(lp$conds), 32)
   expect_equal(
-    digest::digest(lp$conds[[3]]),
-    "6d6d331b28d58465cf1df058d40041ec"
+    cli::hash_obj_md5(lp$conds[[3]]),
+    "e5ef8d21c1027969a7f4dab12f1561f1"
   )
 })
 
@@ -107,7 +107,6 @@ test_that("pkgplan_i_lp_rversion", {
 })
 
 test_that("highlight_version", {
-  local_colors()
   b <- cli::style_bold
   g <- function(x, .envir = parent.frame()) {
     unname(vcapply(x, glue::glue, .envir = .envir))

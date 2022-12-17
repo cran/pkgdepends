@@ -60,6 +60,12 @@ make_installed_cache <- function(library, packages = NULL, priority = NULL) {
     reencode = FALSE
   )
 
+  # Need nrow(inst) > 0 because otherwise it drops to a vector, and
+  # R ignores 'drop' in this case. (?!)
+  if (!is.null(packages) && nrow(inst) > 0) {
+    inst <- inst[inst$package %in% packages, ]
+  }
+
   all_fields <- names(inst)
   fields <- tolower(unique(c(
     "Package", "Title", "Version", "Depends", "Suggests", "Imports",
@@ -100,6 +106,19 @@ make_installed_cache <- function(library, packages = NULL, priority = NULL) {
     !is.na(built$OStype) &
     built$OStype == "windows"
   if (any(winbin)) {
+    # `archs` could be missing, because of a base R bug:
+    # https://github.com/r-lib/pak/issues/448#issuecomment-1354807441
+    if (is.null(inst[["archs"]])) {
+      inst$archs <- rep(NA_character_, nrow(inst))
+    }
+    # we assume x64 on newer R, and i386 + x64 on older R, as this is
+    # what typically happens on CRAN
+    rver <- sub("R ", "", pkgs$rversion)
+    inst[["archs"]] <- ifelse(
+      winbin & is.na(inst[["archs"]]),
+      ifelse(package_version(rver) < "4.2.0", "i386,x64", "x64"),
+      inst[["archs"]]
+    )
     archs <- gsub(" ", "", inst$archs[winbin])
     pkgs$platform[winbin] <- ifelse(
       is.na(archs) | archs %in% c("i386,x64", "x64,i386"),
@@ -142,6 +161,9 @@ merge_installed_caches <- function(c1, c2) {
 #' @param packages If not `NULL`, then only these packages are shown.
 #' @return Data frame that contains data about the packages
 #'   installed in the library.
+#'   ```{r child = "tools/doc/lib-status-return.Rmd"}
+#'   ```
+#'  `r doc_share_rmd("tools/doc/lib-status-return.Rmd", "inst/docs/lib-status-return.rds")`
 #'
 #' @export
 

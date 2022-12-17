@@ -21,51 +21,6 @@ pkg_dep_types_soft <- function() c("Suggests", "Enhances")
 
 pkg_dep_types <- function() c(pkg_dep_types_hard(), pkg_dep_types_soft())
 
-fast_parse_deps <- function(pkgs) {
-  no_pkgs <- nrow(pkgs)
-  cols <- intersect(colnames(pkgs), pkg_dep_types())
-  ## as.character is for empty data frame, e.g. from empty BioC repos
-  deps <- as.character(unlist(pkgs[, cols], use.names = FALSE))
-  nna <- which(!is.na(deps))
-  if (length(nna)) {
-    not_na_deps <- deps[nna]
-    sp <- strsplit(not_na_deps, ",", fixed = TRUE)
-    ll <- sapply(sp, length, USE.NAMES = FALSE)
-    sp <- unlist(sp, use.names = FALSE)
-    parsed <- re_match(sp,
-      paste0("^\\s*(?<package>[^(\\s]+)\\s*",
-             "(?:\\((?<op>[^0-9\\s]+)\\s*(?<version>[^)\\s]+)\\))?\\s*$"))
-    parsed$idx <- rep(rep(seq_len(no_pkgs), length(cols))[nna], ll)
-    parsed$type <- rep(rep(cols, each = no_pkgs)[nna], ll)
-    parsed$ref <- parsed$package
-    parsed$upstream <- pkgs$Package[parsed$idx]
-    parsed <- parsed[, c("upstream", "idx", "ref", "type", "package",
-                         "op", "version")]
-    parsed <- parsed[! parsed$package %in% base_packages(), ]
-    parsed <- parsed[order(parsed$idx), ]
-
-  } else {
-    parsed <- data_frame(
-      upstream = character(),
-      idx = integer(),
-      ref = character(),
-      type = character(),
-      package = character(),
-      version = character(),
-      op = character()
-    )
-  }
-
-  parsed
-}
-
-fast_select_deps <- function(deps, which, dependencies) {
-  res <- deps[deps$idx == which, ]
-  res <- res[res$type %in% dependencies,
-             c("ref", "type", "package", "op", "version")]
-  res[! res$package %in% base_packages(), ]
-}
-
 make_null_deps <- function() {
   data_frame(ref = character(), type = character(), package = character(),
              op = character(), version = character())
@@ -124,10 +79,13 @@ resolve_ref_deps <- function(deps, remotes, extra) {
     nms <- vcapply(x, function(e) e$package %||% NA_character_)
     bad <- is.na(nms)
     if (any(bad)) {
-      stop(
-        "Cannot determine package name for remote(s): ",
-        paste(vcapply(x, "[[", "ref")[bad], collapse = ", ")
-      )
+      badpkgs <- vcapply(x, "[[", "ref")[bad]
+      badtypes <- vcapply(x, "[[", "type")[bad]
+      throw(pkg_error(
+        "Cannot determine package {cli::qty(sum(bad))}name{?s} for
+         {sum(bad)} package{?s}: {.val {badpkgs}}.",
+        i = "Maybe you need to add a {.code <packagename>{zwnj()}=} prefix?"
+      ))
     }
     nms
   }
@@ -152,38 +110,9 @@ resolve_ref_deps <- function(deps, remotes, extra) {
 #' Shorthands for dependency specifications
 #'
 #' @details
-#' Supports concise ways of specifying which types of dependencies of
-#' a package should be installed. It is similar to how
-#' [utils::install.packages()] interprets its `dependencies` argument.
-#' Possible values for the `deps` argument are:
-#' - `TRUE`: This means all hard dependencies plus `Suggests` for
-#'   direct installations, and hard dependencies only for dependent
-#'   packages.
-#' - `FALSE`: no dependencies are installed at all.
-#' - `NA` (any atomic type, so `NA_character_`, etc. as well): only hard
-#'   dependencies are installed. See [pkg_dep_types_hard()].
-#' - If a list with two entries named `direct` and `indirect`, it is taken
-#'   as the requested dependency types, for direct installations and
-#'   dependent packages.
-#' - If a character vector, then it is taken as the dependency types
-#'   for direct installations, and the hard dependencies are
-#'   used for the dependent packages.
-#'
-#' If `"hard"` is included, then it is replaced by the hard dependency
-#' types. If `"soft"` or `"all"` is included, then it is replaced by all
-#' dependency types.
-#'
-#' ## Extra dependencies
-#'
-#' pkgdepends supports extra dependency types for direct installations.
-#' These are specified with a `Config/Needs/` prefix in `DESCRIPTION`
-#' and they can contain package references, separated by commas.
-#' For example you can specify packages that are only needed for the
-#' pkgdown website of the package:
-#'
+#' ```{r child = "tools/doc/deps.Rmd"}
 #' ```
-#' Config/Needs/website: r-lib/pkgdown
-#' ```
+#' `r doc_share_rmd("tools/doc/deps.Rmd", "inst/docs/deps.rds")`
 #'
 #' @param deps See below.
 #' @return A named list with two character vectors: `direct`, `indirect`,

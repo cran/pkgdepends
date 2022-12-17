@@ -59,10 +59,6 @@ format.package_uncompress_error <- function(x, ...) {
     stdout <- last_stdout_lines(x$data$stdout, "", prefix = "O> ")[-(1:2)]
     out <- c(out, "", "Standard output:", stdout)
   }
-  if (!is.null(x$data$stderr)) {
-    stderr <- last_stdout_lines(x$data$stderr, "", prefix = "E> ")[-(1:2)]
-    out <- c(out, "", "Standard error:", stderr)
-  }
   out
 }
 
@@ -171,9 +167,4 @@ cut_into_lines <- function(x) {
   x <- gsub("\r\n", "\n", x, fixed = TRUE)
   x <- strsplit(x, "\n", fixed = TRUE)[[1]]
   if (length(x)) x else ""
-}
-
-is_count <- function(x, min = 0L)  {
-  is.numeric(x) && length(x) == 1 && !is.na(x) &&
-    as.integer(x) == x && x >= min
 }

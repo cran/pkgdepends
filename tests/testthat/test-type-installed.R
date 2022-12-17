@@ -1,8 +1,6 @@
 
 test_that("resolve", {
-
-  skip_on_cran()
-  skip_if_offline()
+  setup_fake_apps()
 
   conf <- current_config()
 
@@ -27,17 +25,16 @@ test_that("resolve", {
     unun(as.list(res[c("ref", "type", "direct", "status", "package", "version")])),
     list(ref = ref, type = "installed", direct = TRUE, status = "OK",
          package = "testthat",
-         version = as.character(packageVersion("testthat")))
+         version = as.character(utils::packageVersion("testthat")))
   )
 
-  expect_true("crayon" %in% attr(res, "unknown_deps"))
+  expect_true("cli" %in% attr(res, "unknown_deps"))
 
   expect_false(is.null(res$extra[[1]]$repotype))
 })
 
 test_that("download", {
-  skip_if_offline()
-  skip_on_cran()
+  setup_fake_apps()
 
   dir.create(tmp <- tempfile())
   on.exit(unlink(tmp, recursive = TRUE), add = TRUE)
@@ -58,4 +55,23 @@ test_that("download", {
 test_that("satisfy", {
   ## Always TRUE, independently of arguments
   expect_true(satisfy_remote_installed())
+})
+
+test_that("installedok_remote_installed", {
+  expect_false(installedok_remote_installed())
+})
+
+test_that("make_installed_cache", {
+  # packages argument is used correctly
+  cache <- make_installed_cache(.Library, "boot")
+  expect_equal(cache$pkgs$package, "boot")
+})
+
+test_that("make_installed_cache edge case", {
+  tmp <- withr::local_tempdir()
+  cache <- make_installed_cache(tmp, "MASS")
+  expect_equal(nrow(cache$pkgs), 0)
+  expect_equal(nrow(cache$deps), 0)
+  expect_true(ncol(cache$pkgs) >= 20) # approx
+  expect_true(ncol(cache$deps) >= 5)  # approx
 })

@@ -103,10 +103,19 @@ solve_dummy_obj <- 1000000000
 pkgplan_solve <- function(self, private, policy) {
   "!DEBUG starting to solve `length(private$resolution$packages)` packages"
   if (is.null(private$config$get("library"))) {
-    stop("No package library specified, see 'library' in new()")
+    throw(pkg_error(
+      "No package library specified for installation plan.",
+      i = "Maybe you need to specify {.code config = list(library = ...)}
+       in {.code pkg_installation_plan$new()} or another initializer?"
+    ))
   }
   if (is.null(private$resolution)) self$resolve()
-  if (private$dirty) stop("Need to resolve, remote list has changed")
+  if (private$dirty) {
+    throw(pkg_error(
+      "Package list has changed, you need to call the {.code $resolve()}
+       method again?"
+    ))
+  }
 
   metadata <- list(solution_start = Sys.time())
   pkgs <- self$get_resolution()
@@ -116,7 +125,11 @@ pkgplan_solve <- function(self, private, policy) {
   sol <- private$solve_lp_problem(prb)
 
   if (sol$status != 0) {
-    stop("Cannot solve installation, internal lpSolve error ", sol$status)
+    throw(pkg_error(
+      "Error in dependency solver, cannot solve installation.",
+      i = "Solver status: {sol$status}.",
+      i = msg_internal_error()
+    ))
   }
 
   selected <- as.logical(sol$solution[seq_len(nrow(pkgs))])
@@ -156,19 +169,27 @@ pkgplan_solve <- function(self, private, policy) {
 
 pkgplan_stop_for_solve_error <- function(self, private) {
   if (is.null(private$solution)) {
-    stop("No solution found, need to call $solve()")
+    throw(pkg_error(
+      "You need to call the {.code $solve()} method first."
+    ))
   }
 
   sol <- self$get_solution()
 
   if (sol$status != "OK") {
     msg <- paste(format(sol$failures), collapse = "\n")
-    stop("Cannot install packages:\n", msg, call. = FALSE)
+    throw(new_error(
+      "Could not solve package dependencies:\n",
+      msg,
+      call. = FALSE
+    ))
   }
 
   # sysreqs error?
   if (!is.null(sol$sysreqs$error)) {
-    stop("sysreqs lookup error: ", conditionMessage(sol$sysreqs$error))
+    throw(new_error(
+      "Could not look up system requirements."
+    ), parent = sol$sysreqs$error)
   }
 }
 
@@ -207,6 +228,7 @@ pkgplan_i_create_lp_problem <- function(pkgs, config, policy) {
 
   lp <- pkgplan_i_lp_init(pkgs, config, policy)
   lp <- pkgplan_i_lp_objectives(lp)
+  lp <- pkgplan_i_lp_force_source(lp)
   lp <- pkgplan_i_lp_failures(lp)
   lp <- pkgplan_i_lp_ignore(lp)
   lp <- pkgplan_i_lp_platforms(lp)
@@ -214,6 +236,7 @@ pkgplan_i_create_lp_problem <- function(pkgs, config, policy) {
   lp <- pkgplan_i_lp_rversion(lp, rversion)
   lp <- pkgplan_i_lp_satisfy_direct(lp)
   lp <- pkgplan_i_lp_latest_direct(lp)
+  lp <- pkgplan_i_lp_latest_within_repo(lp)
   lp <- pkgplan_i_lp_prefer_installed(lp)
   lp <- pkgplan_i_lp_prefer_binaries(lp)
   lp <- pkgplan_i_lp_prefer_new_binaries(lp)
@@ -284,10 +307,27 @@ pkgplan_i_lp_objectives <- function(lp) {
     lp$obj <- lp$obj - min(lp$obj)
 
   } else {
-    stop("Unknown version selection policy")
+    throw(pkg_error(
+      "Unknown version selection policy: {.val {policy}}.",
+      i = "It has to be one of {.val lazy} or {.val upgrade}."
+    ))
   }
 
   lp$obj <- c(lp$obj, rep(solve_dummy_obj, lp$num_direct))
+
+  lp
+}
+
+pkgplan_i_lp_force_source <- function(lp) {
+  # if source package is forced, then rule out binaries
+  src_req <- vlapply(lp$pkgs$params, is_true_param, "source")
+  not_src <- lp$pkgs$platform != "source"
+  bad <- which(src_req & not_src)
+  for (wh in bad) {
+    lp <- pkgplan_i_lp_add_cond(lp, wh, op = "==", rhs = 0,
+                                type = "source-required")
+  }
+  lp$ruled_out <- c(lp$ruled_out, bad)
 
   lp
 }
@@ -438,6 +478,35 @@ pkgplan_i_lp_latest_direct <- function(lp) {
     for (wh in cand[bad]) {
       lp <- pkgplan_i_lp_add_cond(
         lp, wh, op = "==", rhs = 0, type = "direct-update"
+      )
+    }
+    lp$ruled_out <- c(lp$ruled_out, cand[bad])
+  }
+
+  lp
+}
+
+# CRAN's repo sometimes relies on selecting the latest version of
+# a package, if multiple versions are available. (This is after considering
+# R version requirements.) So we need to do the same, within repo.
+# Otherwise pak/pkgdepends would select the first candidate, and while that
+# always (?) OK for CRAN, the order is not the same in RSPM, apparently.
+
+pkgplan_i_lp_latest_within_repo <- function(lp) {
+  nbr <- seq_len(nrow(lp$pkgs))
+  oid <- ifelse(nbr %in% lp$ruled_out, nbr, 0)
+  key <- paste0(
+    oid, "/", lp$pkgs$mirror, "/", lp$pkgs$repodir, "/",
+    lp$pkgs$platform, "/", lp$pkgs$ref
+  )
+  dups <- unique(key[duplicated(key)])
+  for (dupkey in dups) {
+    cand <- which (key == dupkey)
+    vers <- package_version(lp$pkgs$version[cand])
+    bad <- vers < max(vers)
+    for (wh in cand[bad]) {
+      lp <- pkgplan_i_lp_add_cond(
+        lp, wh, op = "==", rhs = 0, type = "choose-latest"
       )
     }
     lp$ruled_out <- c(lp$ruled_out, cand[bad])
@@ -606,7 +675,8 @@ pkgplan_i_lp_dependencies <- function(lp) {
       txt <- glue("{pkgs$ref[wh]} depends on {depref}: \\
                    {collapse(report, sep = ', ')}")
       note <- list(wh = wh, ref = depref, cand = cand,
-                   good_cand = good_cand, txt = txt)
+                   good_cand = good_cand, txt = txt, depop = depop,
+                   depver = depver)
 
       lp <<- pkgplan_i_lp_add_cond(
         lp, c(wh, good_cand), "<=", rhs = 0,
@@ -639,6 +709,10 @@ format_cond <- function(x, cond) {
     ref <- x$pkgs$ref[cond$vars]
     glue("`{ref}` resolution failed")
 
+  } else if (cond$type == "source-required") {
+    ref <- x$pkgs$ref[cond$vars]
+    glue("a source package was required for `{ref}` by the user")
+
   } else if (cond$type == "ignored-by-user") {
     ref <- x$pkgs$ref[cond$vars]
     glue("`{ref}` explicitly ignored by user")
@@ -663,6 +737,10 @@ format_cond <- function(x, cond) {
   } else if (cond$type == "direct-update") {
     ref <- x$pkgs$ref[cond$vars]
     glue("`{ref}` is direct, needs latest version")
+
+  } else if (cond$type == "choose-latest") {
+    ref <- x$pkgs$ref[cond$vars]
+    glue("`{ref}` has a newer version of the same platform")
 
   } else if (cond$type == "prefer-installed") {
     ref <- x$pkgs$ref[cond$vars]
@@ -738,7 +816,9 @@ pkgplan_i_solve_lp_problem <- function(problem) {
 
 pkgplan_get_solution <- function(self, private) {
   if (is.null(private$solution)) {
-    stop("No solution found, need to call $solve()")
+    throw(pkg_error(
+      "You need to call the {.code $solve()} method first."
+    ))
   }
   private$solution$result
 }
@@ -753,7 +833,12 @@ pkgplan_get_solution <- function(self, private) {
 #' @importFrom cli style_bold
 
 highlight_version <- function(old, new) {
-  if (length(old) != length(new)) stop("`old` and `new` length must match")
+  if (length(old) != length(new)) {
+    throw(pkg_error(
+      "Lengtgs of `old` and `new` must match",
+      i = msg_internal_error()
+    ))
+  }
   if (length(new) == 0) return(new)
 
   wch <- !is.na(old) & old != new
@@ -792,10 +877,10 @@ highlight_package_list <- function(sol) {
   ins <- sol$type != "installed" & sol$type != "deps"
   sol <- sol[ins, ]
 
-  pkg <- col_align(col_blue(sol$package))
-  old <- col_align(ifelse(is.na(sol$old_version), "", sol$old_version))
-  arr <- col_align(ifelse(is.na(sol$old_version), "", arrow))
-  new <- col_align(highlight_version(sol$old_version, sol$version))
+  pkg <- ansi_align_width(col_blue(sol$package))
+  old <- ansi_align_width(ifelse(is.na(sol$old_version), "", sol$old_version))
+  arr <- ansi_align_width(ifelse(is.na(sol$old_version), "", arrow))
+  new <- ansi_align_width(highlight_version(sol$old_version, sol$version))
 
   bld <- sol$lib_status %in% c("new", "update") & sol$platform == "source"
   cmp <- sol$lib_status %in% c("new", "update") &
@@ -843,7 +928,7 @@ pkgplan_show_solution <- function(self, private, key = FALSE) {
   hl2 <- na.omit(hl)
 
   if (length(hl2)) {
-    hl2 <- paste0(crayon::silver("+ "), hl2)
+    hl2 <- paste0(cli::col_silver("+ "), hl2)
     if (key && attr(hl, "key") != "") hl2 <- c(hl2, " ", attr(hl, "key"))
     out <- paste(hl2, collapse = "\n")
     cli::cli_verbatim(hl2)
@@ -1029,7 +1114,12 @@ describe_solution_error <- function(pkgs, solution) {
   )
 
   num <- nrow(pkgs)
-  if (!num) stop("No solution errors to describe")
+  if (!num) {
+    throw(pkg_error(
+      "No solution errors to describe",
+      i = msg_internal_error()
+    ))
+  }
   sol <- solution$solution$solution
   sol_pkg <- sol[1:num]
   sol_dum <- sol[(num+1):solution$problem$total]
@@ -1047,7 +1137,8 @@ describe_solution_error <- function(pkgs, solution) {
 
   FAILS <- c("failed-res", "satisfy-direct", "conflict", "dep-failed",
              "old-rversion", "new-rvresion", "different-rversion",
-             "matching-platform", "ignored-by-user", "binary-preferred")
+             "matching-platform", "ignored-by-user", "binary-preferred",
+             "source-required")
 
   state <- rep("maybe-good", num)
   note <- replicate(num, NULL)
@@ -1066,6 +1157,11 @@ describe_solution_error <- function(pkgs, solution) {
   ign_vars <- unlist(var[typ == "ignored-by-user"])
   ign_vars <- intersect(ign_vars, which(state == "maybe-good"))
   state[ign_vars] <- "ignored-by-user"
+
+  ## Source required
+  ign_vars <- unlist(var[typ == "source-required"])
+  ign_vars <- intersect(ign_vars, which(state == "maybe-good"))
+  state[ign_vars] <- "source-required"
 
   ## Ruled out in favor of a binary package
   bin_vars <- unlist(var[typ %in% c("prefer-binary", "prefer-new-binary")])
@@ -1138,6 +1234,11 @@ describe_solution_error <- function(pkgs, solution) {
     state[dep_up[x]] <- "dep-failed"
     note[[ dep_up[x] ]] <-
       c(note[[ dep_up[x] ]], glue("Can't install dependency {pkg}"))
+    depop <- cnd[type_dep][[x]]$note$depop %||% ""
+    depver <- cnd[type_dep][[x]]$note$depver %||% ""
+    if (nzchar(depver)) {
+      note[[ dep_up[x] ]] <- paste0(note[[ dep_up[x] ]], " (", depop, " ", depver, ")")
+    }
     downstream[[ dep_up[x] ]] <- c(downstream[[ dep_up[x] ]], pkg)
   }
 
@@ -1152,6 +1253,11 @@ describe_solution_error <- function(pkgs, solution) {
       state[ dep_up[x] ] <- "dep-failed"
       note[[ dep_up[x] ]] <- c(
         note[[ dep_up[x] ]], glue("Can't install dependency {pkg}"))
+      depop <- cnd[type_dep][[x]]$note$depop %||% ""
+      depver <- cnd[type_dep][[x]]$note$depver %||% ""
+      if (nzchar(depver)) {
+        note[[ dep_up[x] ]] <- paste0(note[[ dep_up[x] ]], " (", depop, " ", depver, ")")
+      }
       downstream[[ dep_up[x] ]] <- c(downstream[[ dep_up[x] ]], pkg)
     }
     new <- dep_up[which_new]
@@ -1185,7 +1291,7 @@ format.pkg_solution_failures <- function(x, ...) {
     done[i] <<- TRUE
     msgs <- unique(fails$failure_message[[i]])
 
-    fail <- paste0("* ", crayon::bold(fails$ref[i]), ":")
+    fail <- paste0("* ", cli::style_bold(fails$ref[i]), ":")
     if (length(msgs) == 1) {
       fail <- paste0(fail, " ", msgs)
     } else {

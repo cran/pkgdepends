@@ -8,11 +8,17 @@ parse_remote_url <- function(specs, config, ...) {
   cn <- setdiff(colnames(parsed_specs), c(".match", ".text"))
   parsed_specs <- parsed_specs[, cn]
   parsed_specs$type <- "url"
-  parsed_specs$hash <- vcapply(specs, function(x) digest::digest(x))
+  parsed_specs$hash <- vcapply(specs, function(x) cli::hash_obj_md5(x))
+  parsed_specs$package[parsed_specs$package == ""] <- NA_character_
 
   # Special case downloads from GH
   parsed_gh_specs <- re_match(specs, type_github_download_url_rx())
-  parsed_specs$package <- parsed_gh_specs$repo
+  parsed_specs$package <- ifelse(
+    is.na(parsed_specs$package) & !is.na(parsed_gh_specs$repo),
+    parsed_gh_specs$repo,
+    parsed_specs$package
+  )
+
   lapply(
     seq_len(nrow(parsed_specs)),
     function(i) as.list(parsed_specs[i,])
@@ -53,7 +59,7 @@ download_remote_url <- function(resolution, target, target_tree, config,
         res_etag <- resolution$metadata[[1]][["RemoteEtag"]]
         new_etag <- newres$metadata[["RemoteEtag"]]
         if (res_etag != new_etag) {
-          warning("Package file at `", remote$url, "` has changed")
+          warning("Package file at `", remote$url, "` has changed") # nocov
         }
       })
   } else {
@@ -66,12 +72,20 @@ download_remote_url <- function(resolution, target, target_tree, config,
       if (packaged == "TRUE") {
         mkdirp(dirname(target))
         if (!file.copy(tmpd$archive, target, overwrite = TRUE)) {
-          stop("Failed to copy package downloaded from `", remote$url, "`")
+          throw(pkg_error(
+            "Failed to copy package from {.path {tmpd$archive}} to
+             {.path{ target}}.",
+            i = "It was downloaded from {.url {remote$url}}."
+          ))
         }
       } else {
         mkdirp(target_tree)
         if (!file.copy(tmpd$extract, target_tree, recursive = TRUE)) {
-          stop("Failed to copy package downloaded from `", remote$url, "`")
+          throw(pkg_error(                                    # nocov start
+            "Failed to copy package from {.path {tmpd$archive}} to
+             {.path{ target}}.",
+            i = "It was downloaded from {.url {remote$url}}."
+          ))                                                  # nocov end
         }
       }
     })$
@@ -122,6 +136,8 @@ installedok_remote_url <- function(installed, solution, config, ...) {
 type_url_rx <- function() {
   paste0(
     "^",
+    ## Optional package name
+    "(?:(?<package>", package_name_rx(), ")=)?",
     "(?:url::)",
     "(?<url>.*)",
     "$"
@@ -161,10 +177,10 @@ type_url_download_and_extract <- function(remote, cache, config, tmpd,
                                           nocache) {
   id <- NULL
   tmpd <- tmpd
-  if (nocache) {
-    download_one_of(remote$url, tmpd$cachepath)$
+  async_constant(if (nocache) {
+    mkdirp(dirname(tmpd$archive))
+    download_one_of(remote$url, tmpd$archive)$
       then(function(dl) { attr(dl, "action") <- "Got"; dl })
-
   } else {
     cache$package$async_update_or_add(
       tmpd$archive,
@@ -172,10 +188,10 @@ type_url_download_and_extract <- function(remote, cache, config, tmpd,
       path = tmpd$cachepath,
       http_headers = default_download_headers(remote$url)
     )
-  }$then(function(dl) {
+  })$then(function(dl) {
     tmpd$status <<- attr(dl, "action")
     tmpd$etag <<- if (is.na(dl$etag)) substr(dl$sha256, 1, 16) else dl$etag
-    tmpd$id <<- digest::digest(tmpd$etag)
+    tmpd$id <<- cli::hash_obj_md5(tmpd$etag)
     rimraf(c(tmpd$extract, tmpd$ok))
     mkdirp(tmpd$extract)
     run_uncompress_process(tmpd$archive, tmpd$extract)
@@ -223,7 +239,11 @@ type_url_resolve <- function(remote, cache, config, direct = FALSE,
 get_pkg_dir_from_archive_dir <- function(x) {
   top <- dir(x)
   if (length(top) != 1) {
-    stop("Package archive should contain exactly one directory")
+    throw(pkg_error(
+      "Package archive at {.path {x}} should contain exactly one directory.",
+      i = "It has {cli::no(length(top))} file{?s}/director{?y/ies}:
+       {.path {top}}"
+    ))
   }
   file.path(x, top)
 }

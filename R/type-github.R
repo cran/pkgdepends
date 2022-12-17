@@ -4,7 +4,6 @@
 
 #' @importFrom jsonlite fromJSON
 #' @importFrom desc desc
-#' @importFrom glue glue
 
 parse_remote_github <- function(specs, config, ...) {
 
@@ -67,6 +66,9 @@ download_remote_github <- function(resolution, target, target_tree,
   nocache <- is_true_param(resolution$params[[1]], "nocache")
   source <- is_true_param(resolution$params[[1]], "source")
 
+  # in case there is a leftover package/tree here
+  unlink(c(target, target_tree), recursive = TRUE)
+
   ## 1. Check for a binary package
 
   if (!nocache && !source) {
@@ -77,7 +79,7 @@ download_remote_github <- function(resolution, target, target_tree,
       .list = c(if (need_vignettes) c(vignettes = TRUE)))
 
     if (nrow(hit)) {
-      return(paste("Had", ptfm))
+      return(paste("Had", ptfm)) # TODO: untested currently
     }
   }
 
@@ -172,7 +174,7 @@ satisfy_remote_github <- function(resolution, candidate,
   }
 
   ## 3. other refs are also good, as long as they have the same sha
-  sha1 <- candidate$extra[[1]][["remotesha"]] %||% NA_character_
+  sha1 <- (if (is.list(candidate$extra[[1]]))candidate$extra[[1]][["remotesha"]]) %||% NA_character_
   sha2 <- resolution$extra[[1]][["remotesha"]] %||% NA_character_
   ok <- is_string(sha1) && is_string(sha2) && same_sha(sha1, sha2)
   if (!ok) {
@@ -206,7 +208,10 @@ type_github_builtin_token <- function() {
 }
 
 type_github_get_headers <- function() {
-  headers <- c("Accept" = "application/vnd.github.v3+json")
+  headers <- c(
+    "Accept" = "application/vnd.github.v3+json",
+    "Content-Type" = "application/json; charset=utf-8"
+  )
 
   token <- NA_character_
   if (Sys.getenv("CI", "") != "") {
@@ -339,11 +344,13 @@ check_github_response_pull1 <- function(resp, obj, rem, call.) {
 }
 
 check_github_response_pull2 <- function(resp, obj, rem, call.) {
+  # No full coverage here, because unless something goes super wrong,
+  # these cases almost never happen.
   if (!is.null(obj$errors)) {
-    throw(new_github_query_error(rem, resp, obj, call.))
+    throw(new_github_query_error(rem, resp, obj, call.))            # nocov
   }
   if (isTRUE(obj[[c("data", "repository", "object", "isBinary")]])) {
-    throw(new_github_baddesc_error(rem, call.))
+    throw(new_github_baddesc_error(rem, call.))                     # nocov
   }
   if (is.null(obj[[c("data", "repository", "object")]])) {
     throw(new_github_no_package_error(rem, call.))
@@ -359,6 +366,9 @@ type_github_make_resolution <- function(data) {
     data$desc$get(extra_config_fields(data$desc$fields()))
   )
 
+  url <- Sys.getenv("R_PKG_GITHUB_API_URL", "https://api.github.com")
+  proto <- sub(":.*$", "", url)
+  host <- sub("^[^:]*://", "", url)
   sha <- data$sha
   sha7 <- substr(sha, 1, 7)
   username <- data$remote$username
@@ -375,7 +385,7 @@ type_github_make_resolution <- function(data) {
 
   meta <- c(
     RemoteType = "github",
-    RemoteHost = "api.github.com",
+    RemoteHost =  host,
     RemoteRepo = repo,
     RemoteUsername = username,
     RemotePkgRef = data$remote$ref,
@@ -398,9 +408,9 @@ type_github_make_resolution <- function(data) {
     package = package,
     version = version,
     license = data$desc$get_field("License", NA_character_),
-    sources = glue(
-      "https://api.github.com/repos/{username}/{repo}/zipball/{sha}"),
-    target = glue("src/contrib/{package}_{version}_{sha7}.tar.gz"),
+    sources = unclass(glue(
+      "{proto}://{host}/repos/{username}/{repo}/zipball/{sha}")),
+    target = unclass(glue("src/contrib/{package}_{version}_{sha7}.tar.gz")),
     remote = list(data$remote),
     deps = list(deps),
     unknown_deps = unknown,
@@ -411,7 +421,11 @@ type_github_make_resolution <- function(data) {
   )
 }
 
-github_query <- function(query, url = "https://api.github.com/graphql",
+github_query <- function(query,
+                         url = paste0(
+                           Sys.getenv("R_PKG_GITHUB_API_URL",
+                                      "https://api.github.com"),
+                           "/graphql"),
                          headers = character(), ...) {
 
   query; url; headers; list(...)
@@ -469,9 +483,10 @@ new_github_query_error <- function(rem, response, obj, call. = NULL) {
   if ("RATE_LIMITED" %in% vcapply(obj$errors, "[[", "type")) {
     return(new_github_ratelimited_error(response, obj, call. = NULL))
 
+    # we don't actually get this response currently
   } else if (grepl("Could not resolve to a User",
                    vcapply(obj$errors, "[[", "message"))) {
-    return(new_github_nouser_error(rem, obj, call. = call.))
+    return(new_github_nouser_error(rem, obj, call. = call.))        # nocov
 
   } else if (grepl("Could not resolve to a Repository",
                    vcapply(obj$errors, "[[", "message"))) {
@@ -482,18 +497,18 @@ new_github_query_error <- function(rem, response, obj, call. = NULL) {
   }
 
   # Otherwise some generic code
-  ghmsgs <- sub("\\.?$", ".", vcapply(obj$errors, "[[", "message"))
-  msg <- paste0("GitHub error: ", paste0(ghmsgs, collapse = ", "))
-  new_github_error(msg, call. = call.)
+  ghmsgs <- sub("\\.?$", ".", vcapply(obj$errors, "[[", "message")) # nocov
+  msg <- paste0("GitHub error: ", paste0(ghmsgs, collapse = ", "))  # nocov
+  new_github_error(msg, call. = call.)                              # nocov
 }
 
 # No such user/org
 
-new_github_nouser_error <- function(rem, obj, call. = NULL) {
-  new_github_error(
-    "Can't find GitHub user {rem$username}.",
-    call. = call.
-  )
+new_github_nouser_error <- function(rem, obj, call. = NULL) {       # nocov
+  new_github_error(                                                 # nocov
+    "Can't find GitHub user {rem$username}.",                       # nocov
+    call. = call.                                                   # nocov
+  )                                                                 # nocov
 }
 
 # No such repo

@@ -10,20 +10,9 @@
 #' [`pkg_download_proposal`]) or [`pkg_solution_result`]
 #' (for [`pkg_installation_proposal`]):
 #'
-#' * `fulltarget`: absolute path to the downloaded file. At most one of
-#'   `fulltarget` and `fulltarget_tree` must exist on the disk.
-#' * `fulltarget_tree`: absolute path to a package tree directory. At most
-#'   one of `fulltarget` and `fulltarget_tree` must exist on the disk.
-#' * `download_status`: `"Had"` or `"Got"`, depending on whether the file
-#'    was obtained from the cache.
-#' * `download_error`: error object for failed downloads.
-#' * `file_size`: Size of the file, or `NA`. For `installed::` refs, it is
-#'   `NA`, and it is also `NA` for refs that created `fulltarget_tree`
-#'   instead of `fulltarget`.
-#'
-#' `fulltarget`, if it exists, contains a packaged (via `R CMD build`)
-#' source R package. If `fulltarget_tree` exists, it is a package tree
-#' directory, that still needs an `R CMD build` call.
+#' ```{r child = {options(rx_downloads = TRUE); "tools/doc/resolution-result.Rmd" }}
+#' ```
+#' `r { options(rx_downloads = TRUE); doc_share_rmd("tools/doc/resolution-result.Rmd", "inst/docs/download-result.rds")}`
 #'
 #' @name pkg_downloads
 #' @aliases pkg_download_result
@@ -34,7 +23,12 @@ NULL
 
 pkgplan_download_resolution <- function(self, private) {
   if (is.null(private$resolution)) self$resolve()
-  if (private$dirty) stop("Need to resolve, remote list has changed")
+  if (private$dirty) {
+    throw(pkg_error(
+      "Package list has changed, you need to call the {.code $resolve()}
+       method again?"
+    ))
+  }
   on.exit(private$done_progress_bar(), add = TRUE)
   on.exit(ansi_show_cursor(), add = TRUE)
   ansi_hide_cursor()
@@ -44,7 +38,12 @@ pkgplan_download_resolution <- function(self, private) {
 pkgplan_async_download_resolution <- function(self, private) {
   self ; private
   if (is.null(private$resolution)) self$resolve()
-  if (private$dirty) stop("Need to resolve, remote list has changed")
+  if (private$dirty) {
+    throw(pkg_error(
+      "Package list has changed, you need to call the {.code $resolve()}
+       method again?"
+    ))
+  }
 
   pkgplan_async_download_internal(self, private,
                                   private$resolution$result,
@@ -57,7 +56,12 @@ pkgplan_async_download_resolution <- function(self, private) {
 
 pkgplan_download_solution <- function(self, private) {
   if (is.null(private$solution)) self$solve()
-  if (private$dirty) stop("Need to resolve, remote list has changed")
+  if (private$dirty) {
+    throw(pkg_error(
+      "Package list has changed, you need to call the {.code $resolve()}
+       method again?"
+    ))
+  }
   on.exit(private$done_progress_bar(), add = TRUE)
   on.exit(ansi_show_cursor(), add = TRUE)
   ansi_hide_cursor()
@@ -66,7 +70,12 @@ pkgplan_download_solution <- function(self, private) {
 
 pkgplan_async_download_solution <- function(self, private) {
   if (is.null(private$solution)) self$solve()
-  if (private$dirty) stop("Need to resolve, remote list has changed")
+  if (private$dirty) {
+    throw(pkg_error(
+      "Package list has changed, you need to call the {.code $resolve()}
+       method again?"
+    ))
+  }
 
   pkgplan_async_download_internal(self, private,
                                   private$solution$result$data,

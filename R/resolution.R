@@ -37,60 +37,12 @@
 #'
 #' ## The result
 #'
-#' The result of the resolution is a data frame with lots of
-#' information about the packages and their dependencies. The columns that
-#' are not documented here may be removed or changed, because they are
-#' either used internally or experimental.
+#' The result of the resolution is a data frame with information about the
+#' packages and their dependencies.
 #'
-#' * `built`: The `Built` field from the `DESCRIPTION` file of binary
-#'   packages, for which this information is available.
-#' * `cache_status`: Whether the package file is in the package cache.
-#'   It is `NA` for `installed::` package refs.
-#' * `dep_types`: Character vector of dependency types that were
-#'   considered for this package. (This is a list column.)
-#' * `deps`: Dependencies of the package, in a data frame. See
-#'   'Package dependency tables' below.
-#' * `direct`: Whether this package (ref, really) was directly specified,
-#'   or added as a dependency.
-#' * `error`: This is a list column that contains error objects for the
-#'   refs that pkgdepends failed to resolve.
-#' * `filesize`: The file size in bytes, or `NA` if this information is
-#'   not available.
-#' * `license`: License of the package, or `NA` if not available.
-#' * `md5sum`: MD5 checksum of the package file, if available, or `NA` if
-#'   not.
-#' * `metadata`: A named character vector. These fields will be (should be)
-#'   added to the installed `DESCRIPTION` file of the package.
-#' * `mirror`: URL of the CRAN(-like) mirror site where the metadata was
-#'   obtained from. It is NA for non-CRAN-like sources, e.g. local files,
-#'   installed packages, GitHub, etc.
-#' * `needscompilation`: Whether the package needs compilation.
-#' * `package`: Package name.
-#' * `priority`: This is `"base"` for base packages, `"recommended"` for
-#'    recommended packages, and `NA` otherwise.
-#' * `ref`: Package reference.
-#' * `remote`: The parsed `remote_ref` objects, see [parse_pkg_refs()].
-#'   This is a list column.
-#' * `repodir`: The directory where this package should be in a CRAN-like
-#'   repository.
-#' * `sha256`: SHA256 hash of the package file, if available, otherwise
-#'   `NA`.
-#' * `sources`: URLs where this package can be downloaded from. This is a
-#'    zero length vector for `installed::` refs.
-#' * `status`: Status of the dependency resolution, `"OK"` or `"FAILED"`.
-#' * `target`: Path where this package should saved in a CRAN-repository.
-#' * `type`: Ref type.
-#' * `version`: Package version.
-#'
-#' ## Package dependency tables
-#'
-#' A package dependency table has five columns currently:
-#'
-#' * `ref`: The package ref of the dependency.
-#' * `type`: The dependency type, in all lowercase. I.e. `imports`,
-#'   `suggests`, etc.
-#' * `op`: Operator for version requirements, e.g. `>=`.
-#' * `version`: Version number, for version requirements.
+#' ```{r child = {options(rx_downloads=NULL); "tools/doc/resolution-result.Rmd"}}
+#' ```
+#' `r { options(rx_downloads = NULL); doc_share_rmd("tools/doc/resolution-result.Rmd", "inst/docs/resolution-result.rds")}`
 #'
 #' ## Resolution failures
 #'
@@ -132,12 +84,22 @@ pkgplan_async_resolve <- function(self, private) {
 }
 
 pkgplan_get_resolution <- function(self, private) {
-  if (is.null(private$resolution$result)) stop("No resolution yet")
+  if (is.null(private$resolution$result)) {
+    throw(pkg_error(
+      "No resolution yet.",
+      i = "You need to call {.code $resolve()} first."
+    ))
+  }
   private$resolution$result
 }
 
 pkgplan__subset_resolution <- function(self, private, which) {
-  if (is.null(private$resolution$result)) stop("No resolution yet")
+  if (is.null(private$resolution$result)) {
+    throw(pkg_error(
+      "No resolution yet.",
+      i = "You need to call {.code $resolve()} first."
+    ))
+  }
   res <- private$resolution$result[which, ]
   attr(res, "metadata")  <- attr(private$resolution$result, "metadata")
   res
@@ -226,6 +188,17 @@ res_init <- function(self, private, config, cache, library,
       if (!is.data.frame(value)) prms <- list(prms)
       want_source <- vlapply(prms, is_true_param, "source")
       want_reinst <- vlapply(prms, is_true_param, "reinstall")
+
+      package <- value$package
+      for (par in private$params) {
+        if (is_true_param(par$params, "source")) {
+          want_source[package %in% par$package | par$package == ""] <- TRUE
+        }
+        if (is_true_param(par$params, "reinstall")) {
+          want_reinst[package %in% par$package | par$package == ""] <- TRUE
+        }
+      }
+
       npkgs <- value$package[not_inst & ! want_source & ! want_reinst]
 
       ## Installed already? Resolve that as well
@@ -427,11 +400,19 @@ resolve_remote <- function(remote, direct, config, cache, dependencies,
   remote_types <- c(default_remote_types(), remote_types)
 
   type <- remote$type %||% unique(vcapply(remote, "[[", "type"))
-  if (length(type) != 1) stop("Invalid remote or remote list, multiple types?")
+  if (length(type) != 1) {
+    throw(pkg_error(
+      "Invalid remote or remote list, multiple types: {.val {type}}.",
+      i = msg_internal_error()
+    ))
+  }
 
   resolve <- remote_types[[type]]$resolve
   if (is.null(resolve)) {
-    stop("Cannot resolve type", format_items(type))
+    throw(pkg_error(
+      "Don't know how to resolve remote type {.val {type}}.",
+      i = msg_internal_error()
+    ))
   }
 
   id <- get_id()
@@ -463,7 +444,11 @@ resolve_remote <- function(remote, direct, config, cache, dependencies,
   })$
     catch(error = function(err) {
       err$id <- id
-      stop(err)
+      err$call <- NULL
+      throw(pkg_error(
+        "{pak_or_pkgdepends()} resolution error for {.pkg {remote$ref}}.",
+        .data = list(id = id)
+      ), parent = err)
     })
 
   list(dx = dx, id = id)
