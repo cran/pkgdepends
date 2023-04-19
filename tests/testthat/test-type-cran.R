@@ -87,7 +87,9 @@ test_that("resolve an old version", {
 
   expect_snapshot({
     snapshot(res, extra = "all")
-  }, transform = function(x) transform_no_srcref(fix_port(x)))
+  }, transform = function(x) {
+    transform_etag(transform_hash(transform_no_srcref(fix_port(x))))
+  })
 
   prop <- new_pkg_installation_proposal("pkg1@1.0.0")
   suppressMessages(prop$resolve())
@@ -151,4 +153,32 @@ test_that("download_remote", {
   expect_equal(dl2$download_error, list(NULL))
 
   pkgcache::pkg_cache_delete_files()
+})
+
+test_that("versioned cran", {
+  pkgcache::pkg_cache_delete_files()
+  setup_fake_apps()
+
+  dsc <- desc::desc("!new")
+  dsc$set_dep("pkg3", "Imports")
+  dsc$set_dep("pkg1", "Imports")
+  dsc$set_remotes(c("pkg3@0.9.9", "pkg1@1.0.0"))
+  dir.create(tmp <- tempfile())
+  dsc_path <- file.path(tmp, "local", "DESCRIPTION")
+  dir.create(dirname(dsc_path))
+  dir.create(lib <- tempfile())
+  on.exit(unlink(c(tmp, lib), recursive = TRUE), add = TRUE)
+  dsc$write(dsc_path)
+  prop <- pkgdepends::new_pkg_deps(
+    paste0("local::", dirname(dsc_path)),
+    config = list(library = lib)
+  )
+  suppressMessages(prop$solve())
+
+  expect_snapshot(
+    prop$draw(),
+    transform = function(x) {
+      sub("local::.*$", "local::<path>", transform_bytes(x))
+    }
+  )
 })

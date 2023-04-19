@@ -123,9 +123,15 @@ comma_wrap <- function(x, indent = 2, exdent = indent, sep = ", ") {
   paste(w, collapse = "\n")
 }
 
-add_class <- function(x, cl) {
-  class(x) <- c(cl, class(x))
-  x
+add_class <- function(obj, classes, where = c("start", "end")) {
+  where <- match.arg(where)
+  nc <- c(
+    if (where == "start") classes,
+    class(obj),
+    if (where == "end") classes
+  )
+  class(obj) <- unique(nc)
+  obj
 }
 
 is_na_scalar <- function(x) {
@@ -282,6 +288,10 @@ async <- function(...) {
   asNamespace("pkgcache")$async(...)
 }
 
+async_map <- function(...) {
+  asNamespace("pkgcache")$async_map(...)
+}
+
 download_file <- function(...) {
   asNamespace("pkgcache")$download_file(...)
 }
@@ -300,6 +310,10 @@ new_async_timer <- function(...) {
 
 external_process <- function(...) {
   asNamespace("pkgcache")$external_process(...)
+}
+
+get_user_cache_dir <- function(...) {
+  asNamespace("pkgcache")$get_user_cache_dir(...)
 }
 
 # nocov end
@@ -432,4 +446,8 @@ pak_or_pkgdepends <- function() {
 
 pakx_version <- function() {
   if (is_pak()) utils::packageVersion("pak") else utils::packageVersion("pkgdepends")
+}
+
+remove_entry <- function(l, n) {
+  l[names(l) != n]
 }

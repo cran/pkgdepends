@@ -466,7 +466,12 @@ pkgplan_i_lp_satisfy_direct <-  function(lp) {
 
 pkgplan_i_lp_latest_direct <- function(lp) {
   pkgs <- lp$pkgs
-  dirpkgs <- unique(lp$pkgs$package[lp$pkgs$direct])
+  # these have version requirements
+  vreq <- vlapply(
+    lp$pkgs$remote,
+    function(r) is.list(r) && !is.null(r$version) && r$version != ""
+  )
+  dirpkgs <- unique(lp$pkgs$package[lp$pkgs$direct & !vreq])
   for (pkg in dirpkgs) {
     cand <- which(
       pkgs$package == pkg &
@@ -619,7 +624,7 @@ pkgplan_i_lp_dependencies <- function(lp) {
   if (any(!is.na(ignore_rver))) {
     ignore_rver[is.na(ignore_rver)] <- "0.0.0"
     current <- min(lp$config$get("r_versions"))
-    ignored2 <- ignore_rver > current
+    ignored2 <- package_version(ignore_rver) > current
     ignored <- ignored | ignored2
   }
   soft_deps <- tolower(pkg_dep_types_soft())
@@ -735,8 +740,8 @@ format_cond <- function(x, cond) {
     glue("`{ref}` needs a different R version: {cond$note}")
 
   } else if (cond$type == "direct-update") {
-    ref <- x$pkgs$ref[cond$vars]
-    glue("`{ref}` is direct, needs latest version")
+    package <- x$pkgs$package[cond$vars]
+    glue("`{package}` is direct, needs latest version")
 
   } else if (cond$type == "choose-latest") {
     ref <- x$pkgs$ref[cond$vars]
@@ -951,7 +956,11 @@ pkgplan_install_plan <- function(self, private, downloads) {
   # but the dependencies column is already set.
   has_deps <- "deps" %in% names(sol)
   if (has_deps) {
-    hard_deps <- pkg_dep_types_hard()
+    if ("dep_types" %in% names(sol)) {
+      selected_deps <- lapply(sol$dep_types, intersect, pkg_dep_types_hard())
+    } else {
+      selected_deps <- list(pkg_dep_types_hard())
+    }
     deps <- lapply(
       seq_len(nrow(sol)),
       function(i) {
@@ -959,7 +968,16 @@ pkgplan_install_plan <- function(self, private, downloads) {
         if (sol$platform[[i]] != "source") {
           x <- x[tolower(x$type) != "linkingto", ]
         }
-        x$package[tolower(x$type) %in% tolower(hard_deps)]
+
+        mydeps <- if (length(selected_deps) > 1) {
+          selected_deps[[i]]
+        } else {
+          selected_deps[[1]]
+        }
+        pkgs <- x$package[tolower(x$type) %in% tolower(mydeps)]
+        pkgs <- intersect(pkgs, sol$package)
+        # Yes, some packages Suggest themselves, apparently
+        setdiff(pkgs, sol$package[[i]])
       })
     deps <- lapply(deps, setdiff, y = c("R", base_packages()))
   }
@@ -1138,7 +1156,7 @@ describe_solution_error <- function(pkgs, solution) {
   FAILS <- c("failed-res", "satisfy-direct", "conflict", "dep-failed",
              "old-rversion", "new-rvresion", "different-rversion",
              "matching-platform", "ignored-by-user", "binary-preferred",
-             "source-required")
+             "source-required", "installed-preferred")
 
   state <- rep("maybe-good", num)
   note <- replicate(num, NULL)
@@ -1162,6 +1180,11 @@ describe_solution_error <- function(pkgs, solution) {
   ign_vars <- unlist(var[typ == "source-required"])
   ign_vars <- intersect(ign_vars, which(state == "maybe-good"))
   state[ign_vars] <- "source-required"
+
+  ## Ruled out in favor of an installed package
+  ins_vars <- unlist(var[typ == "prefer-installed"])
+  ins_vars <- intersect(ins_vars, which(state == "maybe-good"))
+  state[ins_vars] <- "installed-preferred"
 
   ## Ruled out in favor of a binary package
   bin_vars <- unlist(var[typ %in% c("prefer-binary", "prefer-new-binary")])
@@ -1266,7 +1289,7 @@ describe_solution_error <- function(pkgs, solution) {
   ## The rest is good
   state[state == "maybe-good"] <- "could-be"
 
-  wh <- state %in% FAILS
+  wh <- state %in% FAILS | (pkgs$direct & sol_pkg == 0)
   fails <- pkgs[wh, ]
   fails$failure_type <- state[wh]
   fails$failure_message <-  note[wh]
@@ -1287,19 +1310,26 @@ format.pkg_solution_failures <- function(x, ...) {
 
   do <- function(i) {
     if (done[i]) return()
-    if (fails$failure_type[i] == "binary-preferred") return()
+    if (fails$failure_type[i] %in% c("installed-preferred", "binary-preferred")) {
+      return()
+    }
     done[i] <<- TRUE
     msgs <- unique(fails$failure_message[[i]])
 
     fail <- paste0("* ", cli::style_bold(fails$ref[i]), ":")
-    if (length(msgs) == 1) {
+    if (length(msgs) == 0) {
+      fail <- paste0(fail, " ", "dependency conflict")
+    } else if (length(msgs) == 1) {
       fail <- paste0(fail, " ", msgs)
-    } else {
+    } else if (length(msgs) > 1) {
       fail <- paste0(fail, "\n", paste0("  * ", msgs, collapse = "\n"))
     }
 
     res <<- c(res, fail)
-    down <- which(fails$ref %in% fails$failure_down[[i]])
+    down <- which(
+      fails$package %in% fails$failure_down[[i]] |
+      fails$ref %in% fails$failure_down[[i]]
+    )
     lapply(down, do)
   }
 

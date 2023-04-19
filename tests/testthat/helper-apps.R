@@ -450,6 +450,9 @@ new_sysreqs_app <- function() {
           install_scripts = list("apt-get install -y default-jdk"),
           post_install = list(list(command = "R CMD javareconf"))
         ),
+        "openssl" = list(
+          install_scripts = list("apt-get install -y libssl-dev")
+        ),
         "libcurl" = list(
           install_scripts = list("apt-get install -y libcurl4-openssl-dev")
         )
@@ -562,6 +565,16 @@ transform_ext <- function(x) {
 
 transform_sha <- function(x) {
   gsub("[a-fA-F0-9]{64}", "<sha>", x)
+}
+
+transform_hash <- function(x) {
+  x <- gsub("[a-f0-9]{32}", "<hash>", x)
+  x <- gsub("[a-f0-9]{10}", "<hash>", x)
+  x
+}
+
+transform_etag <- function(x) {
+  sub("RemoteEtag: \"[a-z0-9]+\"", "RemoteEtag: \"<etag>\"", x)
 }
 
 transform_tempdir <- function(x) {

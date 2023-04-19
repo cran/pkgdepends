@@ -129,13 +129,21 @@
 # error, unknown os
 
     Code
-      sysreqs_resolve("java", "debian", "11")
+      sysreqs_resolve("java", "foobar", "11")
     Error <async_rejected>
-      ! Failed to look up system requirements for OS debian 11.
-      i HTTP error 400 for <<server>/__api__/repos/1/sysreqs?distribution=debian&release=11>.
+      ! Failed to look up system requirements for OS foobar 11.
+      i HTTP error 400 for <<server>/__api__/repos/1/sysreqs?distribution=foobar&release=11>.
       i Response: "{\"code\":14,\"error\":\"Unsupported system\",\"payload\":null}".
 
 # sysreqs_install
+
+    Code
+      sysreqs_install(srq)
+    Message <cliMessage>
+      i Installing system requirements
+      i Executing `sh -c echo apt-get install -y libssl-dev libcurl4-openssl-dev`
+
+---
 
     Code
       sysreqs_install(srq)
@@ -181,4 +189,20 @@
       $release
       [1] "unknown"
       
+
+# compact_cmds
+
+    Code
+      compact_cmds(character())
+    Output
+      character(0)
+    Code
+      compact_cmds(c("apt-get install -y libssl-dev"))
+    Output
+      [1] "apt-get install -y libssl-dev"
+    Code
+      compact_cmds(c("apt-get install -y libssl-dev",
+        "apt-get install -y libcurl4-openssl-dev"))
+    Output
+      [1] "apt-get install -y libssl-dev libcurl4-openssl-dev"
 
