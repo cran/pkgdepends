@@ -3,19 +3,24 @@
     Code
       git_list_refs("https://github.com/gaborcsardi/pak-test.git")$refs
     Output
-                      ref                                     hash
-      1              HEAD 3f3b0b4ee8a0ff4563073924e5fe069da67a6d8b
-      2   refs/heads/main 3f3b0b4ee8a0ff4563073924e5fe069da67a6d8b
+      # A data frame: 4 x 2
+        ref               hash                                    
+        <chr>             <chr>                                   
+      1 HEAD              3f3b0b4ee8a0ff4563073924e5fe069da67a6d8b
+      2 refs/heads/main   3f3b0b4ee8a0ff4563073924e5fe069da67a6d8b
       3 refs/heads/subdir cefdc0eebcd7f757efb9a80652fd8aaf1a87508e
-      4      refs/tags/v1 cefdc0eebcd7f757efb9a80652fd8aaf1a87508e
+      4 refs/tags/v1      cefdc0eebcd7f757efb9a80652fd8aaf1a87508e
 
 ---
 
     Code
-      git_list_refs("https://github.com/gaborcsardi/pak-test.git", "refs/heads/")$refs
+      git_list_refs_v2("https://github.com/gaborcsardi/pak-test.git", "refs/heads/")$
+        refs
     Output
-                      ref                                     hash
-      1   refs/heads/main 3f3b0b4ee8a0ff4563073924e5fe069da67a6d8b
+      # A data frame: 2 x 2
+        ref               hash                                    
+        <chr>             <chr>                                   
+      1 refs/heads/main   3f3b0b4ee8a0ff4563073924e5fe069da67a6d8b
       2 refs/heads/subdir cefdc0eebcd7f757efb9a80652fd8aaf1a87508e
 
 # git_list_files
@@ -46,56 +51,20 @@
       [1] "aac34e05a0cb9852aa425757dc8480fa29c6c783"
       
       $files
-                                             hash type   mode
-      1  61102a589aeef025b8c11015d5de4fd6f91b0fdb tree  40000
-      2  0784f430fc5830e1b26ceb5fa9a22551fbe9a400 tree  40000
-      3  c3117c75084ec688a9bf82ce11789e0295f01ca3 tree  40000
-      4  0acc01668acf00adc8c3921edea2526d70c67882 blob 100644
-      5  23b72b52356f0a1ac89925f5431e44a0ab23bab6 tree  40000
-      6  cddf411c750f674622bd53fe679a71698dadda4c blob 100644
-      7  0d9009c1027504fd192ec1270c72581c7fc83825 blob 100644
-      8  e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 blob 100644
-      9  5ba9d25318eacd311bb9f73cf83f859b0bfb7235 tree  40000
-      10 75210921adb3ebdf805d8b01691e2d4b3915d096 tree  40000
-      11 7a1a03c76050517831cc70db25e12f037fec8322 blob 100644
-      12 61ffc7cb1f6d9afb3f7a57222b9a4a757a0239f3 blob 100644
-      13 21806f7f52466fa018a94cd69b763c4a1cb10d1d blob 100644
-      14 ce4f59a46da792e747fc9005a7958d3dcdca03cb blob 100644
-      15 bfd18443a589f7c8e09ca9029ee4df9798c9ab00 blob 100644
-      16 a87454ade264a8c407fc2f42b5e60a5a0307ef54 blob 100644
-      17 9a09c0540f29a3f0e0cd0bf9acd7303e1fa9bff2 tree  40000
-      18 8ff50d0556b568d7e2ceaf541da110fff48d2668 blob 100644
-      19 9c6833648770eedb4ec8a19002f345e816d62dae blob 100644
-      20 1214f76975781d3b0c517f423b128037c6e450ed blob 100644
-      21 d4ef766204f3087d32148d714df664ae66eece82 tree  40000
-      22 fdd300286944e36a1c7f4b76d031f0bea4147d47 blob 100644
-      23 dc24b6898cbc56eee682ca1c32735e72e819e4ab blob 100644
-      24 a1e2d6741374d1f32ec138ee2020eae36b859e99 blob 100644
-                                          path
-      1                                .github
-      2                        .github/actions
-      3             .github/actions/parameters
-      4  .github/actions/parameters/action.yml
-      5                      .github/workflows
-      6  .github/workflows/check-standard.yaml
-      7                             .gitignore
-      8                                    foo
-      9                                 subdir
-      10                         subdir/dotenv
-      11           subdir/dotenv/.Rbuildignore
-      12              subdir/dotenv/.gitignore
-      13             subdir/dotenv/DESCRIPTION
-      14                 subdir/dotenv/LICENSE
-      15               subdir/dotenv/NAMESPACE
-      16                 subdir/dotenv/NEWS.md
-      17                       subdir/dotenv/R
-      18      subdir/dotenv/R/dotenv-package.r
-      19              subdir/dotenv/README.Rmd
-      20               subdir/dotenv/README.md
-      21                     subdir/dotenv/man
-      22   subdir/dotenv/man/dotenv-package.Rd
-      23     subdir/dotenv/man/load_dot_env.Rd
-      24                                wipe.R
+      # A data frame: 24 x 4
+         hash                                     type  mode   path                   
+         <chr>                                    <chr> <chr>  <chr>                  
+       1 61102a589aeef025b8c11015d5de4fd6f91b0fdb tree  40000  .github                
+       2 0784f430fc5830e1b26ceb5fa9a22551fbe9a400 tree  40000  .github/actions        
+       3 c3117c75084ec688a9bf82ce11789e0295f01ca3 tree  40000  .github/actions/parame~
+       4 0acc01668acf00adc8c3921edea2526d70c67882 blob  100644 .github/actions/parame~
+       5 23b72b52356f0a1ac89925f5431e44a0ab23bab6 tree  40000  .github/workflows      
+       6 cddf411c750f674622bd53fe679a71698dadda4c blob  100644 .github/workflows/chec~
+       7 0d9009c1027504fd192ec1270c72581c7fc83825 blob  100644 .gitignore             
+       8 e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 blob  100644 foo                    
+       9 5ba9d25318eacd311bb9f73cf83f859b0bfb7235 tree  40000  subdir                 
+      10 75210921adb3ebdf805d8b01691e2d4b3915d096 tree  40000  subdir/dotenv          
+      # i 14 more rows
       
     Code
       git_list_files("https://github.com/gaborcsardi/pak-test.git", "refs/tags/v1")
@@ -105,6 +74,8 @@
       
       $sha
       [1] "cefdc0eebcd7f757efb9a80652fd8aaf1a87508e"
+      attr(,"protocol")
+      [1] 2
       
       $commit
                                                           tree 
@@ -122,56 +93,20 @@
       [1] "aac34e05a0cb9852aa425757dc8480fa29c6c783"
       
       $files
-                                             hash type   mode
-      1  61102a589aeef025b8c11015d5de4fd6f91b0fdb tree  40000
-      2  0784f430fc5830e1b26ceb5fa9a22551fbe9a400 tree  40000
-      3  c3117c75084ec688a9bf82ce11789e0295f01ca3 tree  40000
-      4  0acc01668acf00adc8c3921edea2526d70c67882 blob 100644
-      5  23b72b52356f0a1ac89925f5431e44a0ab23bab6 tree  40000
-      6  cddf411c750f674622bd53fe679a71698dadda4c blob 100644
-      7  0d9009c1027504fd192ec1270c72581c7fc83825 blob 100644
-      8  e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 blob 100644
-      9  5ba9d25318eacd311bb9f73cf83f859b0bfb7235 tree  40000
-      10 75210921adb3ebdf805d8b01691e2d4b3915d096 tree  40000
-      11 7a1a03c76050517831cc70db25e12f037fec8322 blob 100644
-      12 61ffc7cb1f6d9afb3f7a57222b9a4a757a0239f3 blob 100644
-      13 21806f7f52466fa018a94cd69b763c4a1cb10d1d blob 100644
-      14 ce4f59a46da792e747fc9005a7958d3dcdca03cb blob 100644
-      15 bfd18443a589f7c8e09ca9029ee4df9798c9ab00 blob 100644
-      16 a87454ade264a8c407fc2f42b5e60a5a0307ef54 blob 100644
-      17 9a09c0540f29a3f0e0cd0bf9acd7303e1fa9bff2 tree  40000
-      18 8ff50d0556b568d7e2ceaf541da110fff48d2668 blob 100644
-      19 9c6833648770eedb4ec8a19002f345e816d62dae blob 100644
-      20 1214f76975781d3b0c517f423b128037c6e450ed blob 100644
-      21 d4ef766204f3087d32148d714df664ae66eece82 tree  40000
-      22 fdd300286944e36a1c7f4b76d031f0bea4147d47 blob 100644
-      23 dc24b6898cbc56eee682ca1c32735e72e819e4ab blob 100644
-      24 a1e2d6741374d1f32ec138ee2020eae36b859e99 blob 100644
-                                          path
-      1                                .github
-      2                        .github/actions
-      3             .github/actions/parameters
-      4  .github/actions/parameters/action.yml
-      5                      .github/workflows
-      6  .github/workflows/check-standard.yaml
-      7                             .gitignore
-      8                                    foo
-      9                                 subdir
-      10                         subdir/dotenv
-      11           subdir/dotenv/.Rbuildignore
-      12              subdir/dotenv/.gitignore
-      13             subdir/dotenv/DESCRIPTION
-      14                 subdir/dotenv/LICENSE
-      15               subdir/dotenv/NAMESPACE
-      16                 subdir/dotenv/NEWS.md
-      17                       subdir/dotenv/R
-      18      subdir/dotenv/R/dotenv-package.r
-      19              subdir/dotenv/README.Rmd
-      20               subdir/dotenv/README.md
-      21                     subdir/dotenv/man
-      22   subdir/dotenv/man/dotenv-package.Rd
-      23     subdir/dotenv/man/load_dot_env.Rd
-      24                                wipe.R
+      # A data frame: 24 x 4
+         hash                                     type  mode   path                   
+         <chr>                                    <chr> <chr>  <chr>                  
+       1 61102a589aeef025b8c11015d5de4fd6f91b0fdb tree  40000  .github                
+       2 0784f430fc5830e1b26ceb5fa9a22551fbe9a400 tree  40000  .github/actions        
+       3 c3117c75084ec688a9bf82ce11789e0295f01ca3 tree  40000  .github/actions/parame~
+       4 0acc01668acf00adc8c3921edea2526d70c67882 blob  100644 .github/actions/parame~
+       5 23b72b52356f0a1ac89925f5431e44a0ab23bab6 tree  40000  .github/workflows      
+       6 cddf411c750f674622bd53fe679a71698dadda4c blob  100644 .github/workflows/chec~
+       7 0d9009c1027504fd192ec1270c72581c7fc83825 blob  100644 .gitignore             
+       8 e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 blob  100644 foo                    
+       9 5ba9d25318eacd311bb9f73cf83f859b0bfb7235 tree  40000  subdir                 
+      10 75210921adb3ebdf805d8b01691e2d4b3915d096 tree  40000  subdir/dotenv          
+      # i 14 more rows
       
 
 # git_download_file
@@ -206,6 +141,125 @@
       [1] ".dynLibs()"          "pkgload::load_all()" ".dynLibs()"         
       [4] "gc()"                ".dynLibs()"          "pkgload::load_all()"
       [7] ".dynLibs()"          "gc()"                ".dynLibs()"         
+
+# git_fetch
+
+    Code
+      cat(pack[[1]]$object)
+    Output
+      tree aac34e05a0cb9852aa425757dc8480fa29c6c783
+      parent cb8e35b36f8096ef604eff80c70259c64b34f125
+      author Gábor Csárdi <csardi.gabor@gmail.com> 1639165496 +0100
+      committer Gábor Csárdi <csardi.gabor@gmail.com> 1639165496 +0100
+      
+      Just bumping
+
+# git_parse_message errors
+
+    Code
+      git_parse_message(raw(3))
+    Error <git_proto_error_invalid_data>
+      ! Invalid pkt-line at the enf of message from git.
+
+---
+
+    Code
+      git_parse_message(charToRaw("foobvar"))
+    Error <git_proto_error_invalid_data>
+      ! Invalid pkt-len field in message from git, must be four hexa digits.
+
+---
+
+    Code
+      git_parse_message(charToRaw("00bbnoteonugh"))
+    Error <git_proto_error_invalid_data>
+      ! Invalid pkt-payload in message from git.
+      i Need 187 bytes, found 13.
+
+# git_create_message_v1
+
+    Code
+      git_create_message_v1(character())
+    Error <rlib_error_3_0>
+      ! Invalid git protocol (v1) message, must have at least one argument
+
+# pkt_line
+
+    Code
+      pkt_line(raw(70000))
+    Error <rlib_error_3_0>
+      ! packet line longer than 65516 bytes is not implemented yet.
+
+# git_list_refs_v1
+
+    Code
+      git_list_refs_v1("https://github.com/gaborcsardi/pak-test.git")$refs
+    Output
+      # A data frame: 4 x 2
+        ref               hash                                    
+        <chr>             <chr>                                   
+      1 HEAD              3f3b0b4ee8a0ff4563073924e5fe069da67a6d8b
+      2 refs/heads/main   3f3b0b4ee8a0ff4563073924e5fe069da67a6d8b
+      3 refs/heads/subdir cefdc0eebcd7f757efb9a80652fd8aaf1a87508e
+      4 refs/tags/v1      cefdc0eebcd7f757efb9a80652fd8aaf1a87508e
+
+# git_list_refs_v1_process_1
+
+    Code
+      git_list_refs_v1_process_1(resp, "https://github.com/gaborcsardi/pak-test.git",
+        "refs/tags/v1")$refs
+    Output
+      # A data frame: 1 x 2
+        ref          hash                                    
+      * <chr>        <chr>                                   
+      1 refs/tags/v1 cefdc0eebcd7f757efb9a80652fd8aaf1a87508e
+
+# async_git_list_refs_v2_process_1
+
+    Code
+      sy(async_git_list_refs_v2_process_1(resp,
+        "https://github.com/gaborcsardi/pak-test.git", "refs/tags/v1"))$refs
+    Output
+      # A data frame: 1 x 2
+        ref          hash                                    
+      * <chr>        <chr>                                   
+      1 refs/tags/v1 cefdc0eebcd7f757efb9a80652fd8aaf1a87508e
+
+# async_git_list_refs_v2_process_2
+
+    Code
+      async_git_list_refs_v2_process_2(NULL, psd2, url, NULL)
+    Error <rlib_error_3_0>
+      ! Invalid git protocol message from <http://localhost:3000/git/cli>.
+
+---
+
+    Code
+      async_git_list_refs_v2_process_2(NULL, psd2, url, NULL)
+    Error <git_proto_error_not_implemented>
+      ! Only git protocol version 2 is supported, not version 10.
+
+---
+
+    Code
+      async_git_list_refs_v2_process_2(NULL, psd2, url, NULL)
+    Error <git_proto_error_unexpected_response>
+      ! Response from git server does not have a closing `flush-pkt`.
+
+---
+
+    Code
+      async_git_list_refs_v2_process_3(list(list(type = "data-pkt")), character(),
+      url)
+    Error <git_proto_error_unexpected_response>
+      ! Response from git server does not have a closing `flush-pkt`.
+
+# check_initial_response
+
+    Code
+      check_initial_response(list(), "http://localhost:3000/git/cli")
+    Error <git_proto_error_unexpected_response>
+      ! Unexpected response from git server, no `data-pkt` line.
 
 # git_unpack
 
@@ -261,12 +315,14 @@
       [1] 166
       
       $aac34e05a0cb9852aa425757dc8480fa29c6c783$object
-        type   mode       path                                     hash
-      1 tree  40000    .github 61102a589aeef025b8c11015d5de4fd6f91b0fdb
-      2 blob 100644 .gitignore 0d9009c1027504fd192ec1270c72581c7fc83825
-      3 blob 100644        foo e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-      4 tree  40000     subdir 5ba9d25318eacd311bb9f73cf83f859b0bfb7235
-      5 blob 100644     wipe.R a1e2d6741374d1f32ec138ee2020eae36b859e99
+      # A data frame: 5 x 4
+        type  mode   path       hash                                    
+        <chr> <chr>  <chr>      <chr>                                   
+      1 tree  40000  .github    61102a589aeef025b8c11015d5de4fd6f91b0fdb
+      2 blob  100644 .gitignore 0d9009c1027504fd192ec1270c72581c7fc83825
+      3 blob  100644 foo        e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+      4 tree  40000  subdir     5ba9d25318eacd311bb9f73cf83f859b0bfb7235
+      5 blob  100644 wipe.R     a1e2d6741374d1f32ec138ee2020eae36b859e99
       
       $aac34e05a0cb9852aa425757dc8480fa29c6c783$hash
       [1] "aac34e05a0cb9852aa425757dc8480fa29c6c783"
@@ -288,9 +344,11 @@
       [1] 75
       
       $`61102a589aeef025b8c11015d5de4fd6f91b0fdb`$object
-        type  mode      path                                     hash
-      1 tree 40000   actions 0784f430fc5830e1b26ceb5fa9a22551fbe9a400
-      2 tree 40000 workflows 23b72b52356f0a1ac89925f5431e44a0ab23bab6
+      # A data frame: 2 x 4
+        type  mode  path      hash                                    
+        <chr> <chr> <chr>     <chr>                                   
+      1 tree  40000 actions   0784f430fc5830e1b26ceb5fa9a22551fbe9a400
+      2 tree  40000 workflows 23b72b52356f0a1ac89925f5431e44a0ab23bab6
       
       $`61102a589aeef025b8c11015d5de4fd6f91b0fdb`$hash
       [1] "61102a589aeef025b8c11015d5de4fd6f91b0fdb"
@@ -311,8 +369,10 @@
       [1] 44
       
       $`0784f430fc5830e1b26ceb5fa9a22551fbe9a400`$object
-        type  mode       path                                     hash
-      1 tree 40000 parameters c3117c75084ec688a9bf82ce11789e0295f01ca3
+      # A data frame: 1 x 4
+        type  mode  path       hash                                    
+        <chr> <chr> <chr>      <chr>                                   
+      1 tree  40000 parameters c3117c75084ec688a9bf82ce11789e0295f01ca3
       
       $`0784f430fc5830e1b26ceb5fa9a22551fbe9a400`$hash
       [1] "0784f430fc5830e1b26ceb5fa9a22551fbe9a400"
@@ -333,8 +393,10 @@
       [1] 47
       
       $c3117c75084ec688a9bf82ce11789e0295f01ca3$object
-        type   mode       path                                     hash
-      1 blob 100644 action.yml 0acc01668acf00adc8c3921edea2526d70c67882
+      # A data frame: 1 x 4
+        type  mode   path       hash                                    
+        <chr> <chr>  <chr>      <chr>                                   
+      1 blob  100644 action.yml 0acc01668acf00adc8c3921edea2526d70c67882
       
       $c3117c75084ec688a9bf82ce11789e0295f01ca3$hash
       [1] "c3117c75084ec688a9bf82ce11789e0295f01ca3"
@@ -355,8 +417,10 @@
       [1] 56
       
       $`23b72b52356f0a1ac89925f5431e44a0ab23bab6`$object
-        type   mode                path                                     hash
-      1 blob 100644 check-standard.yaml cddf411c750f674622bd53fe679a71698dadda4c
+      # A data frame: 1 x 4
+        type  mode   path                hash                                    
+        <chr> <chr>  <chr>               <chr>                                   
+      1 blob  100644 check-standard.yaml cddf411c750f674622bd53fe679a71698dadda4c
       
       $`23b72b52356f0a1ac89925f5431e44a0ab23bab6`$hash
       [1] "23b72b52356f0a1ac89925f5431e44a0ab23bab6"
@@ -377,8 +441,10 @@
       [1] 40
       
       $`5ba9d25318eacd311bb9f73cf83f859b0bfb7235`$object
-        type  mode   path                                     hash
-      1 tree 40000 dotenv 75210921adb3ebdf805d8b01691e2d4b3915d096
+      # A data frame: 1 x 4
+        type  mode  path   hash                                    
+        <chr> <chr> <chr>  <chr>                                   
+      1 tree  40000 dotenv 75210921adb3ebdf805d8b01691e2d4b3915d096
       
       $`5ba9d25318eacd311bb9f73cf83f859b0bfb7235`$hash
       [1] "5ba9d25318eacd311bb9f73cf83f859b0bfb7235"
@@ -412,17 +478,19 @@
       [1] 321
       
       $`75210921adb3ebdf805d8b01691e2d4b3915d096`$object
-         type   mode          path                                     hash
-      1  blob 100644 .Rbuildignore 7a1a03c76050517831cc70db25e12f037fec8322
-      2  blob 100644    .gitignore 61ffc7cb1f6d9afb3f7a57222b9a4a757a0239f3
-      3  blob 100644   DESCRIPTION 21806f7f52466fa018a94cd69b763c4a1cb10d1d
-      4  blob 100644       LICENSE ce4f59a46da792e747fc9005a7958d3dcdca03cb
-      5  blob 100644     NAMESPACE bfd18443a589f7c8e09ca9029ee4df9798c9ab00
-      6  blob 100644       NEWS.md a87454ade264a8c407fc2f42b5e60a5a0307ef54
-      7  tree  40000             R 9a09c0540f29a3f0e0cd0bf9acd7303e1fa9bff2
-      8  blob 100644    README.Rmd 9c6833648770eedb4ec8a19002f345e816d62dae
-      9  blob 100644     README.md 1214f76975781d3b0c517f423b128037c6e450ed
-      10 tree  40000           man d4ef766204f3087d32148d714df664ae66eece82
+      # A data frame: 10 x 4
+         type  mode   path          hash                                    
+         <chr> <chr>  <chr>         <chr>                                   
+       1 blob  100644 .Rbuildignore 7a1a03c76050517831cc70db25e12f037fec8322
+       2 blob  100644 .gitignore    61ffc7cb1f6d9afb3f7a57222b9a4a757a0239f3
+       3 blob  100644 DESCRIPTION   21806f7f52466fa018a94cd69b763c4a1cb10d1d
+       4 blob  100644 LICENSE       ce4f59a46da792e747fc9005a7958d3dcdca03cb
+       5 blob  100644 NAMESPACE     bfd18443a589f7c8e09ca9029ee4df9798c9ab00
+       6 blob  100644 NEWS.md       a87454ade264a8c407fc2f42b5e60a5a0307ef54
+       7 tree  40000  R             9a09c0540f29a3f0e0cd0bf9acd7303e1fa9bff2
+       8 blob  100644 README.Rmd    9c6833648770eedb4ec8a19002f345e816d62dae
+       9 blob  100644 README.md     1214f76975781d3b0c517f423b128037c6e450ed
+      10 tree  40000  man           d4ef766204f3087d32148d714df664ae66eece82
       
       $`75210921adb3ebdf805d8b01691e2d4b3915d096`$hash
       [1] "75210921adb3ebdf805d8b01691e2d4b3915d096"
@@ -443,8 +511,10 @@
       [1] 53
       
       $`9a09c0540f29a3f0e0cd0bf9acd7303e1fa9bff2`$object
-        type   mode             path                                     hash
-      1 blob 100644 dotenv-package.r 8ff50d0556b568d7e2ceaf541da110fff48d2668
+      # A data frame: 1 x 4
+        type  mode   path             hash                                    
+        <chr> <chr>  <chr>            <chr>                                   
+      1 blob  100644 dotenv-package.r 8ff50d0556b568d7e2ceaf541da110fff48d2668
       
       $`9a09c0540f29a3f0e0cd0bf9acd7303e1fa9bff2`$hash
       [1] "9a09c0540f29a3f0e0cd0bf9acd7303e1fa9bff2"
@@ -467,12 +537,151 @@
       [1] 90
       
       $d4ef766204f3087d32148d714df664ae66eece82$object
-        type   mode              path                                     hash
-      1 blob 100644 dotenv-package.Rd fdd300286944e36a1c7f4b76d031f0bea4147d47
-      2 blob 100644   load_dot_env.Rd dc24b6898cbc56eee682ca1c32735e72e819e4ab
+      # A data frame: 2 x 4
+        type  mode   path              hash                                    
+        <chr> <chr>  <chr>             <chr>                                   
+      1 blob  100644 dotenv-package.Rd fdd300286944e36a1c7f4b76d031f0bea4147d47
+      2 blob  100644 load_dot_env.Rd   dc24b6898cbc56eee682ca1c32735e72e819e4ab
       
       $d4ef766204f3087d32148d714df664ae66eece82$hash
       [1] "d4ef766204f3087d32148d714df664ae66eece82"
       
       
+
+# git_list_pack_index
+
+    Code
+      git_list_pack_index(path)
+    Output
+      $objects
+                                             hash        crc offset
+      1  cefdc0eebcd7f757efb9a80652fd8aaf1a87508e 3597296333     12
+      2  aac34e05a0cb9852aa425757dc8480fa29c6c783  585558493    175
+      3  61102a589aeef025b8c11015d5de4fd6f91b0fdb 3679009946    343
+      4  0784f430fc5830e1b26ceb5fa9a22551fbe9a400  125079169    420
+      5  c3117c75084ec688a9bf82ce11789e0295f01ca3  706758901    466
+      6  23b72b52356f0a1ac89925f5431e44a0ab23bab6 3850203054    515
+      7  5ba9d25318eacd311bb9f73cf83f859b0bfb7235 3361408054    573
+      8  75210921adb3ebdf805d8b01691e2d4b3915d096 2355823347    615
+      9  9a09c0540f29a3f0e0cd0bf9acd7303e1fa9bff2 2235782520    938
+      10 d4ef766204f3087d32148d714df664ae66eece82   23708622    993
+      
+      $data_chksum
+      [1] "775021fe2c99a033831f23b73d3a1176c9c4e435"
+      
+      $idx_chksum
+      [1] "8037ebb73a48b7d4a7d18250fda6bb8370160158"
+      
+
+# git_unpack errors
+
+    Code
+      git_unpack(pack[1:30])
+    Error <git_proto_error_invalid_data>
+      ! Invalid packfile from git, too short.
+
+---
+
+    Code
+      git_unpack(charToRaw("nope and some more so we have enough bytes"))
+    Error <git_proto_error_invalid_data>
+      ! Not a git packfile, it does not have a `PACK` header.
+
+---
+
+    Code
+      git_unpack(pack2)
+    Error <git_proto_error_unexpected_response>
+      ! Unexpected packfile version, must be version 2.
+
+---
+
+    Code
+      git_unpack(pack2)
+    Error <git_proto_error_invalid_data>
+      ! Checksum mismatch in git packfile.
+
+# parse_int32_nwb
+
+    Code
+      parse_int32_nwb(raw(3))
+    Error <rlib_error_3_0>
+      ! Cannot parse integer, not raw or number of bytes is wrong.
+
+# async_git_resolve_ref
+
+    Code
+      sy(async_git_resolve_ref("https://github.com/gaborcsardi/pak-test.git", "main"))
+    Output
+      [1] "3f3b0b4ee8a0ff4563073924e5fe069da67a6d8b"
+      attr(,"protocol")
+      [1] 2
+
+---
+
+    Code
+      sy(async_git_resolve_ref("https://github.com/gaborcsardi/pak-test.git", "v1"))
+    Output
+      [1] "cefdc0eebcd7f757efb9a80652fd8aaf1a87508e"
+      attr(,"protocol")
+      [1] 2
+
+---
+
+    Code
+      sy(async_git_resolve_ref("https://github.com/gaborcsardi/pak-test.git",
+        "3f3b0b4ee8a0ff"))
+    Output
+      [1] "3f3b0b4ee8a0ff4563073924e5fe069da67a6d8b"
+      attr(,"protocol")
+      [1] 2
+
+---
+
+    Code
+      sy(async_git_resolve_ref("https://github.com/gaborcsardi/pak-test.git",
+        "badcafe"))
+    Error <async_rejected>
+      ! Unknown git ref: "badcafe".
+
+---
+
+    Code
+      sy(async_git_resolve_ref("https://github.com/gaborcsardi/pak-test.git",
+        "badcafe"))
+    Error <async_rejected>
+      ! Found multiple git refs with prefix "badcafe", it is ambiguous.
+      i Matching git refs: "badcafe1" and "badcafe2".
+      i Specify a longer prefix to choose a single git ref.
+
+# git_fetch_process_v1
+
+    Code
+      git_fetch_process_v1(list(), url, "badcafe")
+    Error <rlib_error_3_0>
+      ! Empty reply from git server (protocol v1) at <https://<auth>@example.com>.
+
+---
+
+    Code
+      git_fetch_process_v1(list(list(type = "boo")), url, "badcafe")
+    Error <rlib_error_3_0>
+      ! No PACK in git server response (protocol v1) from <https://<auth>@example.com>.
+
+# git_download_repo
+
+    Code
+      dir(tmp, recursive = TRUE)
+    Output
+       [1] "v1/foo"                                
+       [2] "v1/subdir/dotenv/DESCRIPTION"          
+       [3] "v1/subdir/dotenv/LICENSE"              
+       [4] "v1/subdir/dotenv/NAMESPACE"            
+       [5] "v1/subdir/dotenv/NEWS.md"              
+       [6] "v1/subdir/dotenv/R/dotenv-package.r"   
+       [7] "v1/subdir/dotenv/README.Rmd"           
+       [8] "v1/subdir/dotenv/README.md"            
+       [9] "v1/subdir/dotenv/man/dotenv-package.Rd"
+      [10] "v1/subdir/dotenv/man/load_dot_env.Rd"  
+      [11] "v1/wipe.R"                             
 

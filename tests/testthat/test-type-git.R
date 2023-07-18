@@ -9,6 +9,11 @@ test_that("parse_remote_git", {
   expect_snapshot(parse_remote_git("pkg=git::https://github.com/r-lib/cli.git"))
   expect_snapshot(parse_remote_git("pkg=git::https://github.com/r-lib/cli@branch"))
   expect_snapshot(parse_remote_git("pkg=git::https://github.com/r-lib/cli.git@branch"))
+
+  expect_snapshot(parse_pkg_refs(c(
+    "git::https://github.com/cran/falsy.git",
+    "git::https://github.com/cran/falsy2.git"
+  )))
 })
 
 test_that("resolve_remote_git", {
@@ -16,7 +21,7 @@ test_that("resolve_remote_git", {
   setup_fake_apps()
   prop <- suppressMessages(new_pkg_installation_proposal(
     "git::https://github.com/r-lib/cli@v3.6.0",
-    config = list(library = tempfile())
+    config = list(library = tempfile(), sysreqs_platform = "unknown")
   ))
   suppressMessages(prop$resolve())
   res <- prop$get_resolution()
