@@ -1,4 +1,4 @@
-628aa641faa07968e69cd72e23b7c76a *DESCRIPTION
+07ecad7f0e93ce277addca9103becfce *DESCRIPTION
 39a931e7acba7b1745b840116c1590fb *LICENSE
 6de5aa589543f458bb74766a87e5a33b *NAMESPACE
 b09e98737fddc2d8642ea007acec500f *R/aaa-rstudio-detect.R
@@ -19,7 +19,7 @@ ad198e795f52fb63b5aedafe446e4f4e *R/git-app.R
 ca87ecc6e8a7701d1c59b9712488a1dd *R/git-auth.R
 25b58c79d272e1c174026ccb205a0622 *R/git-protocol.R
 4d24cc40f4b9887a2688880e399e23c2 *R/install-binary.R
-55e6cd4371b4a3e678b4f161b9207bbd *R/install-plan.R
+99002f830cecf66df075b1620d7b81b1 *R/install-plan.R
 672b340d338f73bc8746c82508c82b88 *R/install-progress-bar.R
 c3da0fa84d2c2f0f4e83edef2d14fd61 *R/install-tar.R
 20992b558978255bc64bd730814cf7d4 *R/install-utils.R
@@ -28,7 +28,7 @@ c3da0fa84d2c2f0f4e83edef2d14fd61 *R/install-tar.R
 ac70ff82580fc91dcfecda50344614c9 *R/integrity.R
 56d28e2aebbfbafaee7cf305b6901974 *R/name-check.R
 1d7b4544f368d9fc3839f466e785fbb5 *R/onload.R
-3d9111ec1924a9b9e2885adc242856e3 *R/parse-remotes.R
+3e5c45b496ce1ea95bd9bb3ededf95f8 *R/parse-remotes.R
 ec906a303c28b98729c3d4ba49848af2 *R/pkg-dependencies.R
 a7fc6eeaf4455801ad92dad786e4e4a6 *R/pkg-downloads.R
 e578cdabc1fc9b9b4e9c9dc8a806db91 *R/pkg-installation.R
@@ -42,7 +42,7 @@ ae605d18b812d1c8686eb439a1fafdf2 *R/platform.R
 4c69c2d0c15075ad6852d51cd07779fb *R/rematch2.R
 e42c79d3ba8c72f5759ea96f261e2979 *R/resolution-df.R
 215ac643b556c474868daa54cfc3a591 *R/resolution-progress-bar.R
-91423afffffea0c2bee1dd6d30ed4f32 *R/resolution.R
+800a3ba31bb6b402cc370876adebedfd *R/resolution.R
 6dd76b1e3d7ef84704a3196945e6b0bb *R/rstudio-detect.R
 e88aea9f1809e4bca6d8cba987faad9b *R/rx.R
 d655cf8559001a47800a6f64d395597e *R/satisfies.R
@@ -269,7 +269,7 @@ f732112397c49a72fb3c2c4f22758dce *tests/testthat/_snaps/install-binary.md
 07272b336f80227c889fc144784dc97f *tests/testthat/_snaps/install-metadata.md
 0f65f2e79e4bf797332d262f766b4863 *tests/testthat/_snaps/install-plan-errors.md
 63a88b8b73463139f05071c08d2c55ab *tests/testthat/_snaps/install-plan-parts.md
-bc9d5b88a972c8461095e254268f314c *tests/testthat/_snaps/install-plan.md
+660edd993a4b457590f631c5ad9a0a63 *tests/testthat/_snaps/install-plan.md
 2ffa16ef37b26aeec15180987db3d6d6 *tests/testthat/_snaps/install-verify.md
 23d3d5fe7f0ba9ab18b6af2d22805f16 *tests/testthat/_snaps/install.md
 7e816a850eee51918812ef161790df1f *tests/testthat/_snaps/new-r/type-bioc.md
@@ -355,6 +355,12 @@ cb1150c1332be51884c9cbad3b732ed5 *tests/testthat/fixtures/packages/bad3/bad3/DES
 fe999c04c29b51909b8ec56ecfbabcb8 *tests/testthat/fixtures/packages/bad3/bad3/Meta/package.rds
 1bedc695ea9e0df9accb4a3b7676ee47 *tests/testthat/fixtures/packages/bad4/bad4/DESCRIPTION
 fe999c04c29b51909b8ec56ecfbabcb8 *tests/testthat/fixtures/packages/bad4/bad4/Meta/package.rds
+ebef38b130db80786ddef4e2c1741f90 *tests/testthat/fixtures/packages/badbuild/DESCRIPTION
+d41d8cd98f00b204e9800998ecf8427e *tests/testthat/fixtures/packages/badbuild/NAMESPACE
+1caee3954fd15307ff7a7b090889c175 *tests/testthat/fixtures/packages/badbuild/R/foo.R
+f395e8bf48dfbfdb046f918d180ac511 *tests/testthat/fixtures/packages/goodbuild/DESCRIPTION
+d41d8cd98f00b204e9800998ecf8427e *tests/testthat/fixtures/packages/goodbuild/NAMESPACE
+f93d3ea8199fec85ef0fe78397d4deb9 *tests/testthat/fixtures/packages/goodbuild/R/foo.R
 c49d7b9fd292e6b12e5b505b6ca774f6 *tests/testthat/fixtures/packages/vignettes/DESCRIPTION
 d41d8cd98f00b204e9800998ecf8427e *tests/testthat/fixtures/packages/vignettes/NAMESPACE
 f93d3ea8199fec85ef0fe78397d4deb9 *tests/testthat/fixtures/packages/vignettes/R/foo.R
@@ -375,9 +381,9 @@ d4e4bbedf87d9d86e3d7179beca59065 *tests/testthat/helper-fixtures.R
 e39141cecd7732cb47151328dba4ac27 *tests/testthat/helper-resolution.R
 f6dcb339376fb79ba4dd04b3a0b2e1bd *tests/testthat/helper-solve-fix.R
 cf1fd58eda5c649bffda433ec77c501f *tests/testthat/helper.R
-bb40c409504898cfbd3d1042fc6e1792 *tests/testthat/setup.R
-01ad3dce88e07a08813e5d620d795ca4 *tests/testthat/test-assertions.R
-e63be9d5ba53fbd74c57d0433b5243b7 *tests/testthat/test-assertthat.R
+b7fe726f8bda5e035d86e7f01447a76f *tests/testthat/setup.R
+5baf964290778f2b1fc8ec8ad838bc52 *tests/testthat/test-assertions.R
+299b74e4de5ce43b3f469d0fa7ad3232 *tests/testthat/test-assertthat.R
 fed12a80bcccea7664eea3fbe5d3fba2 *tests/testthat/test-build.R
 5a2864ab4d7e09277c45c816362b36be *tests/testthat/test-cran-tools.R
 8b9b808a43abbce54b341e0af742a005 *tests/testthat/test-dep-utils.R
@@ -390,7 +396,7 @@ e300565e5f4175003c12a3980f3bbee8 *tests/testthat/test-install-metadata.R
 623c09d9b6dc33cc385105efebce4cea *tests/testthat/test-install-paths.R
 0f585cb0f74482cfecd5bf33e1ef019f *tests/testthat/test-install-plan-errors.R
 99ad16cc5955dbbf544ce26ff3e759b9 *tests/testthat/test-install-plan-parts.R
-728013e57a3788ad4e87c269f764c2b9 *tests/testthat/test-install-plan.R
+a04fd234799c6cc459976d8c15ee54ce *tests/testthat/test-install-plan.R
 a08ed5f1a1f13795496e9360732d36a6 *tests/testthat/test-install-tar.R
 2e77a0b76043cbeabef168bcd954a4f4 *tests/testthat/test-install-verify.R
 71d0835f257af05a729d51bb25ac8857 *tests/testthat/test-install-zip.R
