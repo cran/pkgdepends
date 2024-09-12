@@ -33,7 +33,8 @@ res_make_empty_df <- local({
         extra    = list(),              # any extra data (e.g. GitHub sha)
         dep_types= list(),
         params   = list(),
-        sysreqs  = character()
+        sysreqs  = character(),
+        os_type  = character()
       )
     }
     data
@@ -70,7 +71,8 @@ res_df_defaults <- local({
         extra    = list(list()),
         dep_types= list("default"),
         params   = list(character()),
-        sysreqs  = NA_character_
+        sysreqs  = NA_character_,
+        os_type  = NA_character_
       )
     }
     data
@@ -114,8 +116,14 @@ res_one_row_df <- function(l) {
   assert_that(is.list(l) && all_named(l))
   samp <- res_make_empty_df()[names(l)]
   bad <- vlapply(samp, is.list) & !vlapply(l, is.list)
+  # If col is isn't a list col, but is supposed to be.
+  bad_len <- vlapply(samp, is.list) & !vlapply(l, function(x) length(x) == 1)
+  # If col is supposed to be a list, but isn't length one.
+  bad <- bad | bad_len
   l[bad] <- lapply(l[bad], list)
-  as_data_frame(l)
+  out <- as_data_frame(l)
+  assert_that(nrow(out) == 1)
+  out
 }
 
 res_list_to_df <- function(reslist) {
