@@ -3,31 +3,28 @@
     Code
       print(sysreqs_platforms(), n = Inf)
     Output
-      # A data frame: 22 x 7
-         name  os    distribution version update_command install_command query_command
-         <chr> <chr> <chr>        <chr>   <chr>          <chr>           <chr>        
-       1 Ubun~ linux ubuntu       *       apt-get -y up~ apt-get -y ins~ dpkg-query   
-       2 Debi~ linux debian       *       apt-get -y up~ apt-get -y ins~ dpkg-query   
-       3 Cent~ linux centos       *       <NA>           yum install -y  rpm          
-       4 Rock~ linux rockylinux   *       <NA>           dnf install -y  rpm          
-       5 Red ~ linux redhat       6       <NA>           yum install -y  rpm          
-       6 Red ~ linux redhat       7       <NA>           yum install -y  rpm          
-       7 Red ~ linux redhat       *       <NA>           dnf install -y  rpm          
-       8 Red ~ linux rhel         7.0     <NA>           yum install -y  rpm          
-       9 Red ~ linux rhel         7.1     <NA>           yum install -y  rpm          
-      10 Red ~ linux rhel         7.2     <NA>           yum install -y  rpm          
-      11 Red ~ linux rhel         7.3     <NA>           yum install -y  rpm          
-      12 Red ~ linux rhel         7.4     <NA>           yum install -y  rpm          
-      13 Red ~ linux rhel         7.5     <NA>           yum install -y  rpm          
-      14 Red ~ linux rhel         7.6     <NA>           yum install -y  rpm          
-      15 Red ~ linux rhel         7.7     <NA>           yum install -y  rpm          
-      16 Red ~ linux rhel         7.8     <NA>           yum install -y  rpm          
-      17 Red ~ linux rhel         7.9     <NA>           yum install -y  rpm          
-      18 Red ~ linux rhel         *       <NA>           dnf install -y  rpm          
-      19 Fedo~ linux fedora       *       <NA>           dnf install -y  rpm          
-      20 open~ linux opensuse     *       <NA>           zypper --non-i~ rpm          
-      21 SUSE~ linux sle          *       <NA>           zypper --non-i~ rpm          
-      22 Alpi~ linux alpine       *       <NA>           apk add --no-c~ apk          
+      # A data frame: 19 x 9
+         name                     os    id                  distribution version version_match update_command    install_command                  query_command
+         <chr>                    <chr> <chr>               <chr>        <chr>   <chr>         <chr>             <chr>                            <chr>        
+       1 Ubuntu Linux             linux ubuntu              ubuntu       *       <NA>          apt-get -y update apt-get -y install               dpkg-query   
+       2 Debian Linux             linux debian              debian       *       <NA>          apt-get -y update apt-get -y install               dpkg-query   
+       3 CentOS Linux             linux centos              centos       *       major         <NA>              yum install -y                   rpm          
+       4 Rocky Linux              linux rocky               rockylinux   *       major         <NA>              dnf install -y                   rpm          
+       5 Rocky Linux              linux rockylinux          rockylinux   *       major         <NA>              dnf install -y                   rpm          
+       6 AlmaLinux                linux almalinux           rockylinux   *       major         <NA>              dnf install -y                   rpm          
+       7 Red Hat Enterprise Linux linux rhel                redhat       6       major         <NA>              yum install -y                   rpm          
+       8 Red Hat Enterprise Linux linux rhel                redhat       7       major         <NA>              yum install -y                   rpm          
+       9 Red Hat Enterprise Linux linux rhel                redhat       *       major         <NA>              dnf install -y                   rpm          
+      10 Red Hat Enterprise Linux linux redhat              redhat       6       major         <NA>              yum install -y                   rpm          
+      11 Red Hat Enterprise Linux linux redhat              redhat       7       major         <NA>              yum install -y                   rpm          
+      12 Red Hat Enterprise Linux linux redhat              redhat       *       major         <NA>              dnf install -y                   rpm          
+      13 Fedora Linux             linux fedora              fedora       *       <NA>          <NA>              dnf install -y                   rpm          
+      14 openSUSE Linux           linux opensuse            opensuse     *       <NA>          <NA>              zypper --non-interactive install rpm          
+      15 openSUSE Linux           linux opensuse-leap       opensuse     *       <NA>          <NA>              zypper --non-interactive install rpm          
+      16 openSUSE Linux           linux opensuse-tumbleweed opensuse     *       <NA>          <NA>              zypper --non-interactive install rpm          
+      17 SUSE Linux Enterprise    linux sles                sle          *       <NA>          <NA>              zypper --non-interactive install rpm          
+      18 SUSE Linux Enterprise    linux sle                 sle          *       <NA>          <NA>              zypper --non-interactive install rpm          
+      19 Alpine Linux             linux alpine              alpine       *       minor         <NA>              apk add --no-cache               apk          
 
 # sysreqs_db_list
 
@@ -38,7 +35,7 @@
       [1] "libcairo2-dev"
       
       [[2]]
-      NULL
+      [1] "chromium"
       
       [[3]]
       [1] "libcurl4-openssl-dev"
@@ -50,9 +47,9 @@
       NULL
       
       [[2]]
-      [1] "[ $(which google-chrome) ] || apt-get install -y gnupg curl"                                                                                 
-      [2] "[ $(which google-chrome) ] || curl -fsSL -o /tmp/google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
-      [3] "[ $(which google-chrome) ] || DEBIAN_FRONTEND='noninteractive' apt-get install -y /tmp/google-chrome.deb"                                    
+      [1] "apt-get install -y software-properties-common"
+      [2] "add-apt-repository -y ppa:xtradeb/apps"       
+      [3] "apt-get update"                               
       
       [[3]]
       NULL
@@ -64,7 +61,7 @@
       NULL
       
       [[2]]
-      [1] "rm -f /tmp/google-chrome.deb"
+      NULL
       
       [[3]]
       NULL
@@ -227,7 +224,6 @@
       system package       installed required by
       --------------       --        -----------
       gsfonts              v         magick     
-      imagemagick          x         magick     
       libcurl4-openssl-dev v         curl       
       libmagick++-dev      x         magick     
       libssl-dev           x         curl       
@@ -237,14 +233,13 @@
     Code
       res[]
     Output
-      # A data frame: 5 x 5
+      # A data frame: 4 x 5
         system_package       installed packages  pre_install post_install
         <chr>                <lgl>     <list>    <list>      <list>      
       1 gsfonts              TRUE      <chr [1]> <NULL>      <NULL>      
-      2 imagemagick          FALSE     <chr [1]> <NULL>      <NULL>      
-      3 libcurl4-openssl-dev TRUE      <chr [1]> <NULL>      <NULL>      
-      4 libmagick++-dev      FALSE     <chr [1]> <NULL>      <NULL>      
-      5 libssl-dev           FALSE     <chr [1]> <NULL>      <NULL>      
+      2 libcurl4-openssl-dev TRUE      <chr [1]> <NULL>      <NULL>      
+      3 libmagick++-dev      FALSE     <chr [1]> <NULL>      <NULL>      
+      4 libssl-dev           FALSE     <chr [1]> <NULL>      <NULL>      
 
 ---
 
@@ -334,6 +329,13 @@
         cpu    vendor os    distribution version
         <chr>  <chr>  <chr> <chr>        <chr>  
       1 x86_64 px     linux ubuntu       bar-baz
+    Code
+      parse_sysreqs_platform("ubuntu-22.04-libc++")
+    Output
+      # A data frame: 1 x 5
+        cpu   vendor os    distribution version     
+        <chr> <chr>  <chr> <chr>        <chr>       
+      1 <NA>  <NA>   linux ubuntu       22.04-libc++
 
 # query, post_install
 
